@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Welcome to GoodsGo!</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:#f4f4f5;">
+    <tr>
+      <td style="padding:40px 20px;">
+
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600"
+          style="margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.08);">
+
+          <!-- Header -->
+          <tr>
+            <td style="background:#1d4ed8;padding:40px 40px 32px;text-align:center;">
+              <h1 style="color:#ffffff;margin:0;font-size:26px;font-weight:700;letter-spacing:-0.5px;">GoodsGo</h1>
+              <p style="color:#93c5fd;margin:6px 0 0;font-size:13px;letter-spacing:0.5px;">INDIA'S LOGISTICS MARKETPLACE</p>
+              <div style="margin-top:20px;font-size:48px;line-height:1;">🎉</div>
+              <h2 style="color:#ffffff;margin:12px 0 0;font-size:22px;font-weight:600;">Welcome aboard!</h2>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:36px 40px;">
+              <p style="color:#374151;margin:0 0 8px;font-size:15px;line-height:24px;">
+                Hi <strong>{{ fullName }}</strong>,
+              </p>
+              <p style="color:#6b7280;margin:0 0 28px;font-size:15px;line-height:24px;">
+                Your email address has been verified and your {{ appName }} account is now fully active.
+                You can now post shipment requests, list your vehicle, or find return journey loads.
+              </p>
+
+              <!-- Feature cards -->
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom:32px;">
+                <tr>
+                  <td style="padding:16px;background:#eff6ff;border-radius:8px;border-left:4px solid #1d4ed8;">
+                    <p style="margin:0 0 4px;font-size:14px;font-weight:600;color:#1e3a8a;">📦 Need Transport</p>
+                    <p style="margin:0;font-size:13px;color:#6b7280;line-height:18px;">Post a shipment request and get connected with available transporters.</p>
+                  </td>
+                </tr>
+                <tr><td style="height:10px;"></td></tr>
+                <tr>
+                  <td style="padding:16px;background:#f0fdf4;border-radius:8px;border-left:4px solid #16a34a;">
+                    <p style="margin:0 0 4px;font-size:14px;font-weight:600;color:#14532d;">🚚 Vehicle Available</p>
+                    <p style="margin:0;font-size:13px;color:#6b7280;line-height:18px;">List your vehicle to find loads and maximise your earnings.</p>
+                  </td>
+                </tr>
+                <tr><td style="height:10px;"></td></tr>
+                <tr>
+                  <td style="padding:16px;background:#fefce8;border-radius:8px;border-left:4px solid #ca8a04;">
+                    <p style="margin:0 0 4px;font-size:14px;font-weight:600;color:#713f12;">↩️ Return Journey</p>
+                    <p style="margin:0;font-size:13px;color:#6b7280;line-height:18px;">Eliminate empty return trips by finding loads near your current location.</p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- CTA -->
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 auto 8px;">
+                <tr>
+                  <td style="border-radius:8px;background:#1d4ed8;box-shadow:0 2px 8px rgba(29,78,216,0.35);">
+                    <a href="{{ loginUrl }}"
+                      style="display:inline-block;padding:14px 36px;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;border-radius:8px;">
+                      Get Started
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:0 40px;"><hr style="border:none;border-top:1px solid #e5e7eb;margin:0;"></td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:24px 40px;text-align:center;">
+              <p style="color:#9ca3af;font-size:12px;margin:0 0 4px;line-height:18px;">
+                Questions? We're here to help at <a href="mailto:{{ supportEmail }}" style="color:#1d4ed8;text-decoration:none;">{{ supportEmail }}</a>
+              </p>
+              <p style="color:#d1d5db;font-size:11px;margin:10px 0 0;">
+                © {{ year }} {{ appName }} · All rights reserved.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>
