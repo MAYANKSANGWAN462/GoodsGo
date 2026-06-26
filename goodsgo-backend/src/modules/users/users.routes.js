@@ -140,11 +140,20 @@ router.get(
   bookingsController.getMyBookings
 );
 
+// ─── Sub-resource routes — Notifications Module (now available) ──────────────
+
+const notificationsRouter = require('../notifications/notifications.routes');
+
+/**
+ * GET  /api/v1/users/me/notifications
+ * PUT  /api/v1/users/me/notifications/read-all
+ * PUT  /api/v1/users/me/notifications/:id/read
+ * Full route definitions and middleware chains live in notifications.routes.js.
+ */
+router.use('/me/notifications', notificationsRouter);
+
 // ─── Sub-resource routes (added in later blocks) ──────────────────────────────
 //   GET /me/reviews        → Block M (Reviews Module)
-//   GET /me/notifications  → Block I (Notifications Module)
-//   PUT /me/notifications/read-all   → Block I
-//   PUT /me/notifications/:id/read  → Block I
 
 // ─── Public Profile Route ─────────────────────────────────────────────────────
 

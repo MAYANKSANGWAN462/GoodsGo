@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Your booking has been accepted — GoodsGo</title>
+  <!--[if mso]>
+  <noscript>
+    <xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml>
+  </noscript>
+  <![endif]-->
+</head>
+<body style="margin:0;padding:0;background-color:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:#f4f4f5;">
+    <tr>
+      <td style="padding:40px 20px;">
+
+        <!-- Email Container -->
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600"
+          style="margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.08);">
+
+          <!-- Header -->
+          <tr>
+            <td style="background:#1d4ed8;padding:32px 40px;text-align:center;">
+              <h1 style="color:#ffffff;margin:0;font-size:26px;font-weight:700;letter-spacing:-0.5px;">GoodsGo</h1>
+              <p style="color:#93c5fd;margin:6px 0 0;font-size:13px;letter-spacing:0.5px;">INDIA'S LOGISTICS MARKETPLACE</p>
+            </td>
+          </tr>
+
+          <!-- Icon Row -->
+          <tr>
+            <td style="background:#f0fdf4;padding:28px 40px 0;text-align:center;">
+              <div style="display:inline-block;width:56px;height:56px;background:#dcfce7;border-radius:50%;line-height:56px;font-size:26px;">✅</div>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="background:#f0fdf4;padding:20px 40px 40px;">
+              <h2 style="color:#14532d;margin:16px 0 12px;font-size:20px;font-weight:600;text-align:center;">
+                {{ title }}
+              </h2>
+              <p style="color:#374151;margin:0 0 8px;font-size:15px;line-height:24px;">
+                Hi <strong>{{ fullName }}</strong>,
+              </p>
+              <p style="color:#6b7280;margin:0 0 28px;font-size:15px;line-height:24px;">
+                {{ body }}
+              </p>
+
+              <!-- CTA Button -->
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 auto 28px;">
+                <tr>
+                  <td style="border-radius:8px;background:#16a34a;box-shadow:0 2px 8px rgba(22,163,74,0.35);">
+                    <a href="{{ frontendUrl }}/bookings/{{ bookingId }}"
+                      style="display:inline-block;padding:14px 36px;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;border-radius:8px;letter-spacing:0.2px;">
+                      View Booking Details
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Notice -->
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
+                style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;margin-bottom:20px;">
+                <tr>
+                  <td style="padding:12px 16px;">
+                    <p style="color:#1e40af;margin:0;font-size:13px;line-height:20px;">
+                      ℹ️ <strong>Next steps:</strong> Log in to {{ appName }} to coordinate pickup and delivery details with the transporter.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Divider -->
+          <tr>
+            <td style="padding:0 40px;"><hr style="border:none;border-top:1px solid #e5e7eb;margin:0;"></td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:24px 40px;text-align:center;">
+              <p style="color:#9ca3af;font-size:12px;margin:0 0 4px;line-height:18px;">
+                You received this email because you have an active booking on {{ appName }}.
+              </p>
+              <p style="color:#9ca3af;font-size:12px;margin:0;line-height:18px;">
+                If this doesn't look right, contact us at
+                <a href="mailto:{{ supportEmail }}" style="color:#6b7280;text-decoration:none;">{{ supportEmail }}</a>.
+              </p>
+              <p style="color:#d1d5db;font-size:11px;margin:12px 0 0;">
+                © {{ year }} {{ appName }} · <a href="mailto:{{ supportEmail }}" style="color:#6b7280;text-decoration:none;">{{ supportEmail }}</a>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+        <!-- End Email Container -->
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>

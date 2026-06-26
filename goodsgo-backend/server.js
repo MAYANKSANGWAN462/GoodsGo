@@ -41,9 +41,10 @@ const server = http.createServer(app);
 const io = initSocket(server);
 
 // ─── Register Socket.io event handlers ───────────────────────────────────────
-// BLOCK J: Uncomment the line below when src/socket/socket.handler.js is generated.
-// This registers all chat and notification socket events on the io instance.
-// require('./src/socket/socket.handler')(io);
+// Block J: socket.handler.js registers the authenticate lifecycle, chat events,
+// and notification mark_read event on the io instance.
+const initSocketHandlers = require('./src/socket/socket.handler');
+initSocketHandlers(io);
 
 // ─── Start background jobs ────────────────────────────────────────────────────
 // Post expiry + booking auto-reject — runs hourly.
