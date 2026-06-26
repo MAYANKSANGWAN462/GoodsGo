@@ -1,14 +1,14 @@
 # GoodsGo — Current Development State
 
 > **Purpose:** Concise snapshot of where development stands right now.  
-> **Last updated:** 2026-06-26 (after FE-2 — Layout Shell + HomePage)  
+> **Last updated:** 2026-06-26 (after FE-3 — Config Fetch + Marketplace Feed + Post Detail)  
 > **Source of truth for architecture/requirements:** `docs/PROJECT_CONTEXT.md`
 
 ---
 
 ## Current Project Phase
 
-Frontend development — FE-2 complete. The authenticated user shell (Navbar with avatar dropdown + NotificationBell stub, Sidebar mobile overlay, MainLayout) and the public HomePage (hero, features grid, CTA, Footer) are fully implemented. Build passes at 190 modules, 0 errors.
+Frontend development — FE-3 complete. Config reference data is fetched at startup, the public Marketplace feed is live with URL-synced filtering, and the Post Detail page is fully implemented. Build passes at 510 modules, 0 errors.
 
 ---
 
@@ -17,7 +17,7 @@ Frontend development — FE-2 complete. The authenticated user shell (Navbar wit
 | Area | Progress | Notes |
 |---|---|---|
 | Backend | ~100% complete (all planned modules) | Syntax-validated; never run against a live database |
-| Frontend | FE-1 complete | Foundation + Auth wired; subsequent modules build on this |
+| Frontend | FE-3 complete | Foundation + Auth + Layout + Marketplace wired |
 | Database | Schema 100% designed, 20 migrations written | Never executed against a real Postgres instance |
 | Deployment | 0% | No hosting account confirmed, no CI/CD |
 
@@ -26,7 +26,7 @@ Frontend development — FE-2 complete. The authenticated user shell (Navbar wit
 ## Completed Blocks (in order)
 
 `A → B → C → D → E → F → H → K → I → J → L → M → N → O` (backend)  
-`FE-1 → FE-2` (frontend)
+`FE-1 → FE-2 → FE-3` (frontend)
 
 ---
 
@@ -53,6 +53,7 @@ Frontend development — FE-2 complete. The authenticated user shell (Navbar wit
 | Admin module | O | Complete |
 | **FE-1: Foundation + Auth** | **FE-1** | **Complete** — Axios instances, Zustand stores, auth pages, route tree, providers |
 | **FE-2: Layout Shell + HomePage** | **FE-2** | **Complete** — Navbar (dropdown, bell stub), Sidebar (mobile), MainLayout, Footer, HomePage full design |
+| **FE-3: Config Fetch + Marketplace + Post Detail** | **FE-3** | **Complete** — config startup fetch, Marketplace feed with URL-synced filtering, PostDetail page, common components (Badge, Card, Pagination, EmptyState) |
 
 ---
 
@@ -66,7 +67,6 @@ None.
 
 | Block | Scope | Status |
 |---|---|---|
-| FE-3 | Config fetch + Marketplace feed + Post detail | Not started |
 | FE-4 | Create/Edit post (all 3 post types) | Not started |
 | FE-5 | Bookings — list + detail + state actions | Not started |
 | FE-6 | Chat — conversation list + real-time window | Not started |
@@ -81,14 +81,14 @@ None.
 
 ## Current Active Frontend Module
 
-**FE-3 — Config Fetch + Marketplace Feed + Post Detail**  
+**FE-4 — Create/Edit Post (All 3 Post Types)**  
 See `docs/FRONTEND_MODULE_CONTEXT.md` for the implementation brief.
 
 ---
 
 ## Current Milestone
 
-FE-2 complete. Next milestone: FE-3 (Config fetch + Marketplace feed + Post detail).
+FE-3 complete. Next milestone: FE-4 (Create/Edit Post — all three post types).
 
 ---
 
@@ -116,6 +116,8 @@ prop-types ^15.x
 date-fns ^4.x
 ```
 
+No new packages were installed in FE-2 or FE-3.
+
 ---
 
 ## Important TODOs
@@ -124,47 +126,32 @@ date-fns ^4.x
 - [ ] Set all required env vars in `goodsgo-backend/.env`
 - [ ] Set `VITE_API_URL` in `goodsgo-frontend/.env` for your dev backend URL (currently `http://localhost:5000`)
 - [ ] Connect to a real PostgreSQL instance and run all 20 migrations + 4 seed scripts
-- [ ] Begin FE-3 — Config Fetch + Marketplace Feed + Post Detail
+- [ ] Begin FE-4 — Create/Edit Post (all 3 post types)
 
 ---
 
 ## Recently Completed Work
 
-**FE-2 — Layout Shell + HomePage:**
+**FE-3 — Config Fetch + Marketplace Feed + Post Detail:**
 
 Files implemented:
-- `src/components/common/Avatar.jsx` — image with initials fallback; `xs/sm/md/lg/xl` sizes
-- `src/components/notifications/NotificationBell.jsx` — static bell stub (no badge); full implementation in FE-7
-- `src/components/layout/Navbar.jsx` — logo, desktop links, NotificationBell, Avatar dropdown (Profile/Settings/Logout), hamburger (mobile-only, shown only when `onMenuToggle` is passed)
-- `src/components/layout/Sidebar.jsx` — mobile slide-out overlay; backdrop click closes; scroll-locks body; active route highlight; auth/unauth footer
-- `src/components/layout/MainLayout.jsx` — manages sidebar state; closes on route change; Navbar + Sidebar + Outlet
-- `src/components/layout/Footer.jsx` — copyright + Marketplace/Register/Login links
-- `src/pages/HomePage.jsx` — hero, stats strip, features grid, CTA section (unauth only), Footer
+- `src/constants/postTypes.js` — POST_TYPES display labels + badge variant map; POST_TYPE_OPTIONS for selects
+- `src/components/common/Badge.jsx` — colour-coded chip; 6 variants (default/success/warning/danger/info/neutral); sm/md sizes
+- `src/components/common/Card.jsx` — surface container; padding variants; interactive onClick state
+- `src/components/common/Pagination.jsx` — page nav; ellipsis logic; Previous/Next; hides when totalPages ≤ 1
+- `src/components/common/EmptyState.jsx` — zero-results display; icon + title + message + optional CTA
+- `src/services/config.service.js` — `getConfigOptions()` → GET /config/options; fetched once at startup
+- `src/services/posts.service.js` — `getFeed`, `getPostById`, `toggleSave`, `reportPost`, `getMyPosts`
+- `src/hooks/usePosts.js` — `useFeed`, `usePost`, `useToggleSave` (optimistic), `useReportPost`, `useMyPosts`
+- `src/components/posts/PostTypeBadge.jsx` — maps post_type to Badge variant
+- `src/components/posts/PostCard.jsx` — image thumbnail, type badge, route, price, date, owner avatar; navigates to PostDetailPage on click
+- `src/components/posts/PostImageGallery.jsx` — main image + prev/next arrows + thumbnail strip
+- `src/components/posts/PostList.jsx` — responsive grid (1→2→3 cols); skeleton loading; error state; EmptyState; Pagination
+- `src/components/posts/PostFilters.jsx` — keyword, type, city, vehicle, category, date range, price range; mobile drawer + desktop sidebar; URL-synced via parent
+- `src/pages/marketplace/MarketplacePage.jsx` — URL search param ↔ filter state sync; useFeed hook; PostFilters + PostList layout; mobile filter toggle
+- `src/pages/marketplace/PostDetailPage.jsx` — PostImageGallery, type badge, route, price, description, type-specific fields, owner card, save (optimistic toggle), report modal, booking stub, login prompt for unauth users
 
-Build: `vite build` passes — 0 errors, 190 modules.
+Modified:
+- `src/App.jsx` — Marketplace + PostDetail moved outside ProtectedRoute (optionalAuth, separate MainLayout group); startup config fetch via AppRoutes inner component
 
-**FE-1 — Foundation + Auth:**
-
-Packages installed: axios, zustand, @tanstack/react-query, react-hook-form, yup, @hookform/resolvers, react-hot-toast, prop-types, date-fns
-
-Files created/implemented:
-- `src/stores/useAuthStore.js` — Zustand auth store (access token in memory only)
-- `src/stores/useAdminStore.js` — Zustand admin store (stub)
-- `src/services/api.js` — User + admin Axios instances; 401 interceptor with queue-based refresh; response unwrapper
-- `src/services/auth.service.js` — login, register, logout, refreshToken, forgotPassword, resetPassword, verifyEmail, resendVerification
-- `src/constants/routes.js` — ROUTES constant + buildRoute helper
-- `src/utils/generateInitials.js`, `errorParser.js`, `formatters.js`
-- `src/components/common/Spinner.jsx`, `Button.jsx`, `Input.jsx`
-- `src/context/AuthContext.jsx` — AuthProvider; silent refresh on mount; logout with cache clear
-- `src/hooks/useAuth.js`
-- `src/components/guards/ProtectedRoute.jsx`, `AdminRoute.jsx`
-- `src/components/layout/AuthLayout.jsx`, `Navbar.jsx` (stub), `MainLayout.jsx` (stub), `AdminLayout.jsx` (stub)
-- `src/pages/HomePage.jsx`, `NotFoundPage.jsx`, `UnauthorizedPage.jsx`
-- `src/pages/auth/LoginPage.jsx`, `RegisterPage.jsx`, `ForgotPasswordPage.jsx`, `ResetPasswordPage.jsx`
-- `src/pages/admin/AdminLoginPage.jsx` (stub)
-- `src/App.jsx` — Full route tree with QueryClientProvider + AuthProvider + Toaster
-- `src/main.jsx` — Updated
-- `src/index.css` — @theme design tokens added
-- `.env` — VITE_API_URL=http://localhost:5000
-
-Build: `vite build` passes — 0 errors, 185 modules, 12s.
+Build: `vite build` passes — 0 errors, 510 modules.

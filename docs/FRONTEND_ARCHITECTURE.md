@@ -1,12 +1,14 @@
 # GoodsGo — Frontend Architecture
 
 > **Purpose:** Complete frontend folder structure with every file's responsibility. Read alongside `docs/FRONTEND_CONTEXT.md`.
-> **Last updated:** After FE-2 — Layout Shell + HomePage.
+> **Last updated:** After FE-3 — Config Fetch + Marketplace Feed + Post Detail.
 > **Source of truth for existing files:** `goodsgo-frontend/src/`. Files marked ✅ are implemented; others remain empty stubs unless noted.
 
 **FE-1 implemented files:** `main.jsx`, `App.jsx`, `index.css`, `src/stores/useAuthStore.js`, `src/stores/useAdminStore.js`, `src/services/api.js`, `src/services/auth.service.js`, `src/constants/routes.js`, `src/utils/generateInitials.js`, `src/utils/errorParser.js`, `src/utils/formatters.js`, `src/components/common/Spinner.jsx`, `src/components/common/Button.jsx`, `src/components/common/Input.jsx`, `src/context/AuthContext.jsx`, `src/hooks/useAuth.js`, `src/components/guards/ProtectedRoute.jsx`, `src/components/guards/AdminRoute.jsx`, `src/components/layout/AuthLayout.jsx`, `src/pages/NotFoundPage.jsx`, `src/pages/UnauthorizedPage.jsx`, `src/pages/auth/LoginPage.jsx`, `src/pages/auth/RegisterPage.jsx`, `src/pages/auth/ForgotPasswordPage.jsx`, `src/pages/auth/ResetPasswordPage.jsx`.
 
 **FE-2 implemented files:** `src/components/common/Avatar.jsx`, `src/components/layout/Navbar.jsx`, `src/components/layout/Sidebar.jsx`, `src/components/layout/MainLayout.jsx`, `src/components/layout/Footer.jsx`, `src/pages/HomePage.jsx`, `src/components/notifications/NotificationBell.jsx` (stub — static bell icon; full implementation in FE-7).
+
+**FE-3 implemented files:** `src/constants/postTypes.js`, `src/services/config.service.js`, `src/services/posts.service.js`, `src/hooks/usePosts.js`, `src/components/common/Badge.jsx`, `src/components/common/Card.jsx`, `src/components/common/Pagination.jsx`, `src/components/common/EmptyState.jsx`, `src/components/posts/PostTypeBadge.jsx`, `src/components/posts/PostCard.jsx`, `src/components/posts/PostImageGallery.jsx`, `src/components/posts/PostList.jsx`, `src/components/posts/PostFilters.jsx`, `src/pages/marketplace/MarketplacePage.jsx`, `src/pages/marketplace/PostDetailPage.jsx`. `src/App.jsx` updated (marketplace routes moved outside ProtectedRoute; startup config fetch added).
 
 **FE-1 stubs still pending full implementation:** `src/components/layout/AdminLayout.jsx`, `src/pages/admin/AdminLoginPage.jsx`.
 
