@@ -2,8 +2,8 @@
 
 > **Document purpose:** This is the permanent engineering memory of the GoodsGo project. It is the single source of truth for continuing development in Claude Code (or any future engineering session) from the exact point this chat-based development left off. It must be kept up to date as the project evolves. Store at `docs/PROJECT_CONTEXT.md` in the repository root.
 >
-> **Last updated:** End of Block L (Chat REST API).
-> **Project phase:** Backend MVP, ~80% complete by file count, core marketplace + booking lifecycle + notifications + real-time socket layer + full chat feature (REST + socket) functional end-to-end. Frontend not started. Reviews, Payments, Admin modules not yet built.
+> **Last updated:** End of Block M (Reviews Module).
+> **Project phase:** Backend MVP, ~85% complete by file count, core marketplace + booking lifecycle + notifications + real-time socket layer + full chat feature (REST + socket) + two-sided reviews system functional end-to-end. Frontend not started. Payments, Admin modules not yet built.
 > **Critical state warning:** There are two known runtime-breaking gaps documented in Section 33 (Known Issues) that MUST be fixed before certain code paths are exercised in production or staging. Read that section before writing any new code.
 
 ---
@@ -63,7 +63,7 @@ Full lifecycle requirements: send request, withdraw own pending request, accept 
 One conversation is automatically created per accepted booking (never created manually by a user). Real-time messaging via Socket.io. Conversation has a status (`active` / `locked` / `archived`) that mirrors the booking lifecycle — locked (read-only) on cancellation/rejection, archived (read-only) after completion. **Fully implemented (Blocks J + L)** — `socket.handler.js` authenticates clients into `user:<id>` rooms; `chat.socket.js` handles `join_conversation`, `leave_conversation`, `send_message`, `typing_start`, `typing_stop`, `messages_read`; `notification.socket.js` handles `mark_read`. REST API (Block L): `GET /chat` (conversation list), `GET /chat/:id` (single conversation), `GET /chat/:id/messages` (paginated history), `POST /chat/:id/messages` (text message), `POST /chat/:id/messages/image` (Cloudinary image upload). Both text and image messages emit `new_message` socket events for real-time delivery. `GET /users/me/conversations` also available.
 
 ### 3.6 Reviews
-Two-sided review system — after a booking is `completed`, both the requester and the post owner may leave one review each (`review_role`: `as_customer` / `as_transporter`), enforced by a compound unique DB constraint. **Not yet implemented** — database schema exists (migration 012), but no service/controller/routes. Block M, not started.
+Two-sided review system — after a booking is `completed`, both the requester and the post owner may leave one review each (`review_role`: `as_customer` / `as_transporter`), enforced by a compound unique DB constraint. **Fully implemented (Block M)** — all four module files live: `reviews.validator.js`, `reviews.service.js`, `reviews.controller.js`, `reviews.routes.js`. REST API mounted at `/api/v1/reviews`; `GET /users/me/reviews` sub-resource wired into `users.routes.js`. Rating aggregate (`users.rating`, `users.total_reviews`) recalculated automatically on every review write/delete. `REVIEW_RECEIVED` notification dispatched to reviewee on creation.
 
 ### 3.7 Payments
 Escrow-style payment model: customer pays on booking acceptance (within a configurable deadline), platform holds funds, releases to transporter on completion (or auto-releases after a configurable grace period if neither party acts). Commission is split out and tracked. Razorpay is the selected gateway (test-mode credentials referenced in `.env.example`). **Not yet implemented** — database schema exists with full escrow fields (migration 013), and `bookings.service.js` correctly sets `payment_deadline` on acceptance and `auto_release_at` on completion, but there is no payment service, no Razorpay SDK integration, no webhook handler. Block N, not started. **The `razorpay` npm package is also currently missing from `package.json` — see Section 33.**
@@ -243,11 +243,11 @@ goodsgo-backend/
         │   ├── chat.controller.js               5 thin asyncHandler handlers
         │   └── chat.routes.js                   5 routes mounted at /api/v1/chat
         │
-        ├── reviews/                              (empty/pending — Block M)
-        │   ├── reviews.validator.js              NOT YET GENERATED
-        │   ├── reviews.service.js                NOT YET GENERATED
-        │   ├── reviews.controller.js              NOT YET GENERATED
-        │   └── reviews.routes.js                  NOT YET GENERATED
+        ├── reviews/                              Block M — COMPLETE
+        │   ├── reviews.validator.js              5 Joi schemas (create, reviewIdParam, bookingIdParam, userIdParam, listQuery)
+        │   ├── reviews.service.js                createReview, getBookingReviews, getMyReviews, getUserReviews, deleteReview
+        │   ├── reviews.controller.js             5 thin asyncHandler handlers
+        │   └── reviews.routes.js                 4 routes mounted at /api/v1/reviews
         │
         ├── payments/                              (empty/pending — Block N)
         │   ├── payments.validator.js              NOT YET GENERATED
@@ -261,8 +261,8 @@ goodsgo-backend/
             └── admin.routes.js                       NOT YET GENERATED
 ```
 
-**Total files on disk:** 94 backend files generated, syntax-validated, and confirmed present (84 prior + 4 new chat module files + 6 modified shared files counted separately).
-**Total files remaining per plan:** 11 (11 module files across Blocks M/N/O).
+**Total files on disk:** 98 backend files generated, syntax-validated, and confirmed present (94 prior + 4 reviews module files implemented + 2 shared files edited).
+**Total files remaining per plan:** 7 (7 module files across Blocks N/O).
 
 There is currently **no `docs/` content prior to this file** and **no frontend repository/folder created at all.**
 
@@ -544,11 +544,20 @@ All limiters skip entirely when `NODE_ENV === 'test'`, return a consistent JSON 
 
 Also wired at: `GET /api/v1/users/me/conversations` → delegates to same controller.
 
-### 11.9 Pending / Not Yet Mounted
-- `/api/v1/reviews/*` — Block M
+### 11.9 Reviews — `/api/v1/reviews` (mounted, fully live — Block M)
+| Method | Path | Auth | Notes |
+|---|---|---|---|
+| POST | `/` | `authenticate` | Create review; body: `{ bookingId, rating, comment, reviewRole }` |
+| GET | `/bookings/:bookingId` | `authenticate` | Both reviews for a completed booking (parties only) |
+| GET | `/users/:userId` | `optionalAuth` | Public visible reviews written about a user (paginated) |
+| DELETE | `/:reviewId` | `authenticate` | Delete own review within `review_edit_window_hours`; recalculates rating |
+
+Also wired at: `GET /api/v1/users/me/reviews` → reviews I have written.
+
+### 11.10 Pending / Not Yet Mounted
 - `/api/v1/payments/*` — Block N
 - `/api/v1/admin/*` — Block O
-*(All Block I notification routes and Block L chat routes are now live.)*
+*(All Block I notification routes, Block L chat routes, and Block M review routes are now live.)*
 
 ## 12. Services Implemented
 
@@ -563,7 +572,7 @@ Services are the **only** layer permitted to contain business logic and database
 | `bookings/bookings.service.js` | `createBooking, getBookings, getBookingById, acceptBooking, rejectBooking, withdrawBooking, cancelBooking, markInProgress, completeBooking, raiseDispute, getBookingHistory, getPostBookings` | Full 9-state machine, `FOR UPDATE` transaction locking, conversation auto-creation, commission calculation, lazy-loaded notification dispatch |
 | `notifications/notifications.service.js` | `createNotification, listNotifications, markOneRead, markAllRead` | Block I complete — `createNotification` never throws, emits socket event, dispatches booking emails. All lazy-require call sites now activate automatically. |
 | `chat/chat.service.js` | `getMyConversations, getConversationById, getMessages, sendMessage, sendImageMessage` | Block L complete — participation-verified, conversation-status-guarded, Cloudinary orphan cleanup, socket event emission |
-| `reviews/reviews.service.js` | **NOT IMPLEMENTED** | Block M |
+| `reviews/reviews.service.js` | `createReview, getBookingReviews, getMyReviews, getUserReviews, deleteReview` | Block M complete — role-validated review creation, rating aggregate recalculation (non-transactional on create, transactional on delete), `REVIEW_RECEIVED` notification dispatch, platform-settings-driven edit window |
 | `payments/payments.service.js` | **NOT IMPLEMENTED** | Block N |
 | `admin/admin.service.js` | **NOT IMPLEMENTED** | Block O |
 
@@ -630,8 +639,7 @@ These are end-to-end functional, tested via the documented testing checklists in
 
 Direct continuation of Section 3 (Functional Requirements) cross-referenced against Section 6 (Folder Structure):
 
-- **Block M — Reviews Module** (next block — two-sided post-completion reviews, rating aggregate recalculation)
-- **Block N — Payments Module** (Razorpay integration, webhook handling, escrow release)
+- **Block N — Payments Module** (next block — Razorpay integration, webhook handling, escrow release; requires `razorpay` installed first)
 - **Block O — Admin Module** (moderation, analytics, settings management, dispute resolution UI-side)
 - **Identity verification / KYC** (no block assigned yet — Pending Decision on scheduling)
 - **Phone number verification** (`is_phone_verified` column exists on `users`, but no OTP/SMS flow was ever designed or scheduled — Pending Decision, likely deferred to a future SMS-provider integration like Twilio/2Factor as noted in the original architecture's "Future Migration Paths")
@@ -1042,15 +1050,15 @@ A consolidated list of every deliberate, discussed architectural choice made dur
 
 ## 36. Exact Next Development Task
 
-**Block L — Chat REST API: COMPLETE** (implemented this session).
+**Block M — Reviews Module: COMPLETE** (implemented this session).
 
 **Recommended next task:**
 
-**Block M — Reviews Module** (`src/modules/reviews/reviews.validator.js`, `reviews.service.js`, `reviews.controller.js`, `reviews.routes.js`).
+**Block N — Payments Module** (`src/modules/payments/payments.validator.js`, `payments.service.js`, `payments.controller.js`, `payments.routes.js`).
 
-See `docs/MODULE_CONTEXT.md` for the full Block M specification and architecture notes.
+See `docs/MODULE_CONTEXT.md` for the full Block N specification and architecture notes.
 
-Pre-conditions: Block L complete ✓; migration 012 (`reviews` table) exists ✓; `REVIEW_ROLES` and `NOTIFICATION_TYPES.REVIEW_RECEIVED` in `constants.js` ✓.
+Pre-conditions: `razorpay` npm package must be installed first (currently missing from `package.json` — see Section 33, Issue 4); Block M complete ✓; migration 013 (`payments` table with full escrow fields) exists ✓; `PAYMENT_STATUS` in `constants.js` ✓; `bookings.service.js` already sets `payment_deadline` on accept and `auto_release_at` on complete ✓.
 
 ---
 
@@ -1058,12 +1066,12 @@ Pre-conditions: Block L complete ✓; migration 012 (`reviews` table) exists ✓
 
 In order:
 1. `npm install` — lock in the axios addition from Block I.
-2. Raise `disputes`/`admin_audit_logs` migration-lock question with user — required before Block O.
-3. Connect a real PostgreSQL instance (Neon.tech) — run migrations + seeds for the first time.
-4. Block M (Reviews Module) — post-booking trust signal; completes the core marketplace trust loop.
-5. Initialize a real git repository and commit current state — still not done.
-6. Blocks N, O in the order given in Section 18.
-7. Begin frontend project setup in parallel once Block M is in progress.
+2. Add `razorpay` to `package.json` (`"razorpay": "^2.9.4"`) and `npm install` before Block N.
+3. Raise `disputes`/`admin_audit_logs` migration-lock question with user — required before Block O.
+4. Connect a real PostgreSQL instance (Neon.tech) — run migrations + seeds for the first time.
+5. Block N (Payments Module) — Razorpay integration, escrow lifecycle.
+6. Block O (Admin Module) — requires Items 3 and 5 first.
+7. Begin frontend project setup in parallel once Block N is in progress.
 
 ---
 
@@ -1080,8 +1088,8 @@ In order:
 - [x] Generate 3 booking email templates — done Block I.
 - [x] Build `src/socket/socket.handler.js`, `chat.socket.js`, `notification.socket.js` (Block J); replace `// BLOCK J:` placeholder comment in `server.js` — done Block J.
 - [x] Build Chat module (Block L); add `app.use('/api/v1/chat', ...)` to `app.js` — done Block L.
-- [ ] Build Reviews module (Block M); add `app.use('/api/v1/reviews', ...)`; wire `/me/reviews` into `users.routes.js`.
-- [ ] Build Payments module (Block N); add `app.use('/api/v1/payments', ...)`.
+- [x] Build Reviews module (Block M); add `app.use('/api/v1/reviews', ...)`; wire `/me/reviews` into `users.routes.js`. Done Block M.
+- [ ] Build Payments module (Block N); add `app.use('/api/v1/payments', ...)`; install `razorpay` first.
 - [ ] Build Admin module (Block O); add `app.use('/api/v1/admin', ...)`; wire `logAdminAction` into admin mutation routes once `admin_audit_logs` exists.
 - [ ] Initialize git repository; first commit.
 - [ ] Set up an actual PostgreSQL instance (Neon.tech) and run migrations + seeds against it for the first time — **this has never been done**, all validation to date has been static/syntactic only.
@@ -1165,7 +1173,13 @@ Block L (4 implemented files + 6 edits):
          src/app.js (// BLOCK L: placeholder replaced with live mount),
          src/modules/users/users.routes.js (GET /me/conversations wired in)
 
-Total: 94 files on disk. Total still pending per plan: 11 (11 module files across Blocks M/N/O), plus the 2 migration files needed to resolve Section 33's P0 issues (not yet approved/scheduled).
+Block M (4 implemented files + 2 edits):
+  IMPLEMENTED (were empty): src/modules/reviews/reviews.validator.js, reviews.service.js,
+    reviews.controller.js, reviews.routes.js
+  EDITS: src/app.js (// BLOCK M: placeholder replaced with live mount),
+         src/modules/users/users.routes.js (GET /me/reviews wired in)
+
+Total: 98 files on disk. Total still pending per plan: 7 (7 module files across Blocks N/O), plus the 2 migration files needed to resolve Section 33's P0 issues (not yet approved/scheduled).
 ```
 
 ---

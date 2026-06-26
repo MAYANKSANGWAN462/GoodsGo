@@ -133,7 +133,7 @@ app.use('/api/v1/config',   require('./modules/config/config.routes'));
 
 app.use('/api/v1/bookings', require('./modules/bookings/bookings.routes'));
 app.use('/api/v1/chat',     require('./modules/chat/chat.routes'));
-// BLOCK M: app.use('/api/v1/reviews',  require('./modules/reviews/reviews.routes'));
+app.use('/api/v1/reviews',  require('./modules/reviews/reviews.routes'));
 // BLOCK N: app.use('/api/v1/payments', require('./modules/payments/payments.routes'));
 // BLOCK O: app.use('/api/v1/admin',    require('./modules/admin/admin.routes'));
 

@@ -168,8 +168,20 @@ router.get(
   chatController.getMyConversations
 );
 
-// ─── Sub-resource routes (added in later blocks) ──────────────────────────────
-//   GET /me/reviews        → Block M (Reviews Module)
+// ─── Sub-resource routes — Reviews Module (now available) ────────────────────
+
+const reviewsController = require('../reviews/reviews.controller');
+
+/**
+ * GET /api/v1/users/me/reviews
+ * Returns paginated reviews the authenticated user has written.
+ * Supports: page, limit query params.
+ */
+router.get(
+  '/me/reviews',
+  authenticate,
+  reviewsController.getMyReviews
+);
 
 // ─── Public Profile Route ─────────────────────────────────────────────────────
 
