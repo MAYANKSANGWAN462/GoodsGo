@@ -170,6 +170,17 @@ const uploadPostImages = wrapMulter(
 );
 
 /**
+ * uploadSingleImage — Single image upload for chat image messages.
+ *
+ * Field name in multipart form: "image"
+ * After this middleware: req.file contains the uploaded file buffer
+ *
+ * Used in:
+ *   POST /api/v1/chat/:conversationId/messages/image  (chat.routes.js — Block L)
+ */
+const uploadSingleImage = wrapMulter(multerBase.single('image'));
+
+/**
  * uploadDocument — Single image upload for identity verification (single-side).
  *
  * Field name in multipart form: "document"
@@ -274,6 +285,7 @@ const requireFile = (fieldName) => (req, res, next) => {
 module.exports = {
   uploadAvatar,
   uploadPostImages,
+  uploadSingleImage,
   uploadDocument,
   uploadDocumentFields,
   requireFile

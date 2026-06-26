@@ -168,6 +168,35 @@ async function uploadPostImage(buffer, mimeType) {
 }
 
 /**
+ * uploadChatImage — Uploads an image message to Cloudinary's chat folder.
+ *
+ * @param {Buffer} buffer   - Image buffer from Multer
+ * @param {string} mimeType - Declared MIME type
+ * @returns {Promise<{ url: string, publicId: string }>}
+ * @throws {Error} If magic-byte verification fails
+ */
+async function uploadChatImage(buffer, mimeType) {
+  if (!verifyMagicBytes(buffer, mimeType)) {
+    throw new Error('File type verification failed. Only JPEG, PNG, and WebP images are accepted.');
+  }
+
+  const options = {
+    width:        1200,
+    height:       900,
+    crop:         'limit',
+    quality:      'auto:good',
+    fetch_format: 'auto'
+  };
+
+  const result = await uploadToCloudinary(buffer, CLOUDINARY_FOLDERS.CHAT, options);
+
+  return {
+    url:      result.secure_url,
+    publicId: result.public_id
+  };
+}
+
+/**
  * uploadIdentityDocument — Uploads a KYC document to Cloudinary's private folder.
  *
  * Stored in a private folder — access only via time-limited signed URLs.
@@ -243,6 +272,7 @@ function generateSignedUrl(publicId, options = {}) {
 module.exports = {
   uploadAvatar,
   uploadPostImage,
+  uploadChatImage,
   uploadIdentityDocument,
   deleteImage,
   generateSignedUrl,

@@ -152,6 +152,22 @@ const notificationsRouter = require('../notifications/notifications.routes');
  */
 router.use('/me/notifications', notificationsRouter);
 
+// ─── Sub-resource routes — Chat Module (now available) ───────────────────────
+
+const chatController = require('../chat/chat.controller');
+
+/**
+ * GET /api/v1/users/me/conversations
+ * Returns paginated conversations for the authenticated user.
+ * Mirrors GET /api/v1/chat for clients that navigate from the user profile context.
+ * Supports: page, limit query params.
+ */
+router.get(
+  '/me/conversations',
+  authenticate,
+  chatController.getMyConversations
+);
+
 // ─── Sub-resource routes (added in later blocks) ──────────────────────────────
 //   GET /me/reviews        → Block M (Reviews Module)
 

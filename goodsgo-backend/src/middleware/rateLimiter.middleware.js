@@ -166,6 +166,26 @@ const bookingLimiter = rateLimit({
   message: 'You can send a maximum of 10 booking requests per hour.'
 });
 
+// ─── Chat Message Limiter ─────────────────────────────────────────────────────
+/**
+ * chatMessageLimiter — Applied to POST /chat/:conversationId/messages routes.
+ *
+ * 60 messages per minute per USER (not per IP).
+ * Using user ID as the key prevents limit circumvention by rotating IP addresses.
+ * Falls back to IP if user is somehow absent (safety guard — routes require auth).
+ *
+ * Applied in: chat.routes.js
+ */
+const chatMessageLimiter = rateLimit({
+  ...baseOptions,
+  windowMs: RATE_LIMITS.CHAT_MESSAGE.WINDOW_MS, // 1 minute
+  max: RATE_LIMITS.CHAT_MESSAGE.MAX,             // 60 messages
+  keyGenerator: (req) => {
+    return req.user ? `chat:user:${req.user.id}` : `chat:ip:${req.ip}`;
+  },
+  message: 'You are sending messages too quickly. Please slow down and try again.'
+});
+
 module.exports = {
   authLimiter,
   forgotPasswordLimiter,
@@ -173,5 +193,6 @@ module.exports = {
   apiLimiter,
   uploadLimiter,
   postCreateLimiter,
-  bookingLimiter
+  bookingLimiter,
+  chatMessageLimiter
 };

@@ -1,31 +1,31 @@
 # GoodsGo — Module Context
-> **Active block:** Block L — Chat REST API | Replace this file entirely when Block L is complete.
+> **Active block:** Block M — Reviews | Replace this file entirely when Block M is complete.
 
 ---
 
 ## Current Module
-- **Module:** Chat (REST API layer)
-- **Block:** L — follows Block J (Socket Handlers)
-- **Goal:** Build the HTTP REST complement to the socket-based chat already wired in Block J. Clients can fetch conversation lists, fetch message history, send text messages via REST, and upload image messages. The socket layer handles real-time delivery; the REST layer handles initial data load and image upload.
+- **Module:** Reviews
+- **Block:** M — follows Block L (Chat REST API)
+- **Goal:** Two-sided post-booking review system. After a booking reaches `completed` status, both the requester (reviewing in role `as_customer`) and the post owner (reviewing in role `as_transporter`) may each leave exactly one review. Reviews drive the `rating` and `total_reviews` aggregate on the `users` table.
 
 ---
 
 ## Pre-conditions (all resolved — no blockers before starting)
-- Block J complete: `chat.socket.js` handles `send_message`, `typing_start`, `typing_stop`, `messages_read`, `join_conversation`, `leave_conversation` ✓
-- `config/socket.js` exports `emitToConversation(conversationId, event, data)` — REST send endpoints must emit socket events so that connected clients receive real-time updates ✓
-- migrations 010 (`conversations`), 011 (`messages`) exist ✓
-- `upload.middleware.js` has `uploadSingleImage` middleware available ✓
-- `uploadImage.js` has `uploadToCloudinary(buffer, mimeType, folder, options)` and `CLOUDINARY_FOLDERS` — use `CLOUDINARY_FOLDERS.CHAT` (or define if not present) for image storage ✓
-- `app.js` has a `// BLOCK L: ...` placeholder comment for the chat route mount ✓
+- migration 012 (`reviews` table) exists with compound unique index `(booking_id, reviewer_id, review_role)` ✓
+- `REVIEW_ROLES` constant exists in `constants.js` ✓
+- `NOTIFICATION_TYPES.REVIEW_RECEIVED` exists in `constants.js` ✓
+- `notifications.service.createNotification()` is live and never throws ✓
+- `PLATFORM_SETTINGS.REVIEW_EDIT_WINDOW_HOURS` constant exists ✓
+- `app.js` has a `// BLOCK M:` placeholder comment ✓
 
 ---
 
 ## Module Dependencies
-- **Reads from:** `conversations`, `messages`, `users` (joined for participant profile data)
-- **Writes to:** `messages`, `conversations` (last_message_at, last_message_preview)
-- **Uses:** `config/database.js` (`query()`), `config/socket.js` (`emitToConversation()`), `utils/uploadImage.js` (Cloudinary image upload for image messages), `utils/constants.js` (`SOCKET_EVENTS`, `CONVERSATION_STATUS`, `MESSAGE_TYPES`, `CLOUDINARY_FOLDERS`), `utils/ApiError.js`, `utils/paginate.js`
-- **Middleware chain per route:** `authenticate` → (uploadSingleImage for image route) → `validate(schema)` → controller
-- **No new migrations needed**
+- **Reads from:** `reviews`, `bookings`, `users`
+- **Writes to:** `reviews`, `users` (`rating`, `total_reviews` recalculated on each review create/delete)
+- **Uses:** `config/database.js` (`query()`), `utils/constants.js` (`REVIEW_ROLES`, `BOOKING_STATUS`, `PLATFORM_SETTINGS`, `NOTIFICATION_TYPES`), `utils/ApiError.js`, `utils/paginate.js`
+- **Notifies:** `notifications.service.createNotification()` — lazy-require pattern for `REVIEW_RECEIVED` type
+- **Middleware chain per route:** `authenticate` → (optionalAuth for public routes) → `validate(schema)` → controller
 
 ---
 
@@ -33,10 +33,10 @@
 
 | File | Role | Notes |
 |---|---|---|
-| `src/modules/chat/chat.validator.js` | Joi validation schemas | `conversationIdParamSchema`, `sendMessageSchema`, `listMessagesQuerySchema` |
-| `src/modules/chat/chat.service.js` | Business logic + DB queries | 5 exported functions (see below) |
-| `src/modules/chat/chat.controller.js` | Thin asyncHandler-wrapped handlers | One handler per service function |
-| `src/modules/chat/chat.routes.js` | Express router | 5 routes; mounted in `app.js` |
+| `src/modules/reviews/reviews.validator.js` | Joi validation schemas | 3 schemas (see below) |
+| `src/modules/reviews/reviews.service.js` | Business logic + DB queries | 5 exported functions |
+| `src/modules/reviews/reviews.controller.js` | Thin asyncHandler handlers | One handler per service function |
+| `src/modules/reviews/reviews.routes.js` | Express router | 4 routes; mounted in `app.js` |
 
 ---
 
@@ -44,8 +44,8 @@
 
 | File | Change |
 |---|---|
-| `src/app.js` | Replace `// BLOCK L:` placeholder with `app.use('/api/v1/chat', require('./modules/chat/chat.routes'))` |
-| `src/modules/users/users.routes.js` | Add `router.get('/me/conversations', authenticate, asyncHandler(chatController.getMyConversations))` before the `/:userId` route |
+| `src/app.js` | Replace `// BLOCK M:` placeholder with `app.use('/api/v1/reviews', require('./modules/reviews/reviews.routes'))` |
+| `src/modules/users/users.routes.js` | Add `router.get('/me/reviews', authenticate, reviewsController.getMyReviews)` before the `/:userId` route |
 
 ---
 
@@ -53,89 +53,116 @@
 
 | Method | Path | Auth | Notes |
 |---|---|---|---|
-| `GET` | `/api/v1/chat` | `authenticate` | List all of the authenticated user's conversations, ordered by `last_message_at DESC`, paginated |
-| `GET` | `/api/v1/chat/:conversationId` | `authenticate` | Get single conversation detail + verify participation |
-| `GET` | `/api/v1/chat/:conversationId/messages` | `authenticate` | Paginated message history, newest-first |
-| `POST` | `/api/v1/chat/:conversationId/messages` | `authenticate` | Send a text message; also emits `new_message` socket event |
-| `POST` | `/api/v1/chat/:conversationId/messages/image` | `authenticate` + `uploadSingleImage` | Upload + send an image message via Cloudinary |
+| `POST` | `/api/v1/reviews` | `authenticate` | Create review; body: `{ bookingId, rating, comment, reviewRole }` |
+| `GET` | `/api/v1/reviews/bookings/:bookingId` | `authenticate` | Get both reviews for a completed booking (parties only) |
+| `GET` | `/api/v1/reviews/users/:userId` | `optionalAuth` | Public reviews written about a user (paginated) |
+| `DELETE` | `/api/v1/reviews/:reviewId` | `authenticate` | Delete own review within `review_edit_window_hours`; recalculates rating |
+
+Plus sub-resource route via `users.routes.js`:
+- `GET /api/v1/users/me/reviews` → `reviewsController.getMyReviews` (reviews I have written)
 
 ---
 
 ## Service Functions to Export
 
-### `getMyConversations(userId, page, limit)`
-- Query: `SELECT c.*, u.full_name, u.profile_image_url` joined where `participant_1_id = userId OR participant_2_id = userId`, the "other participant" is derived as `CASE WHEN c.participant_1_id = $1 THEN c.participant_2_id ELSE c.participant_1_id END`.
-- Join `users` to get the other participant's `full_name` and `profile_image_url`.
-- Join `bookings` to get `status` (so frontend can show booking state in chat header).
-- Order: `c.last_message_at DESC NULLS LAST`.
-- Paginated via `paginate()`.
-- Returns: `{ conversations, meta }`.
+### `createReview(bookingId, reviewerId, rating, comment, reviewRole)`
+- Fetch booking — throw 404 if not found.
+- Verify `booking.status === BOOKING_STATUS.COMPLETED` — throw 422 if not (`REVIEW_NOT_ALLOWED` code).
+- Verify `reviewerId` is `booking.requester_id` OR `booking.post_owner_id` — throw 403 if not.
+- Determine `revieweeId`: if reviewRole is `as_customer`, reviewer is the transporter reviewing the customer, so reviewee is `requester_id`. If `as_transporter`, reviewer is the customer reviewing the transporter, so reviewee is `post_owner_id`. Validate that the reviewer is actually the correct party for the chosen role.
+- INSERT into `reviews` — the compound unique index `(booking_id, reviewer_id, review_role)` prevents duplicates; catch `23505` Postgres error and throw `ApiError.conflict('You have already submitted a review for this booking.')`.
+- Recalculate `reviewee.rating` and `reviewee.total_reviews`:
+  ```sql
+  UPDATE users SET
+    rating = (SELECT ROUND(AVG(rating)::numeric, 2) FROM reviews WHERE reviewee_id = $1 AND is_visible = true),
+    total_reviews = (SELECT COUNT(*) FROM reviews WHERE reviewee_id = $1 AND is_visible = true)
+  WHERE id = $1
+  ```
+- Dispatch `REVIEW_RECEIVED` notification to the reviewee (lazy-require pattern — same as booking notifications).
+- Return formatted review.
 
-### `getConversationById(conversationId, userId)`
-- Verify participation: `SELECT ... WHERE id = $1 AND (participant_1_id = $2 OR participant_2_id = $2)`.
-- Throw `ApiError.notFound('Conversation')` on fail (no existence disclosure — same user gets 404 for both "not found" and "not a participant").
-- Return formatted conversation with both participants' profiles and booking status.
+### `getBookingReviews(bookingId, userId)`
+- Verify `userId` is a party to the booking (requester or post_owner) — throw 404 if not.
+- Fetch all reviews for the booking (0, 1, or 2 rows).
+- Return `{ reviews: [...], totalCount }` — not paginated since max 2 reviews per booking.
 
-### `getMessages(conversationId, userId, page, limit)`
-- Verify participation first (throw 404 if not a participant).
-- Query: `SELECT m.*, u.full_name AS sender_name, u.profile_image_url AS sender_image FROM messages m LEFT JOIN users u ON u.id = m.sender_id WHERE m.conversation_id = $1 ORDER BY m.created_at DESC LIMIT $2 OFFSET $3`.
-- Paginated.
-- Returns: `{ messages, meta }`.
+### `getMyReviews(userId, page, limit)`
+- SELECT reviews WHERE `reviewer_id = userId`, paginated, newest-first.
+- JOIN users (reviewee) for their profile.
+- Return `{ reviews, meta }`.
 
-### `sendMessage(conversationId, userId, content)`
-- Verify participation + verify `conversations.status = 'active'` (throw 409 if locked/archived).
-- Insert into `messages` with `message_type = 'text'`.
-- Update `conversations.last_message_at` and `last_message_preview` (first 255 chars).
-- Emit `emitToConversation(conversationId, SOCKET_EVENTS.NEW_MESSAGE, formattedMessage)`.
-- Return formatted message.
+### `getUserReviews(revieweeId, page, limit)`
+- SELECT reviews WHERE `reviewee_id = revieweeId AND is_visible = true`, paginated, newest-first.
+- JOIN users (reviewer) for their profile.
+- Return `{ reviews, meta }`.
 
-### `sendImageMessage(conversationId, userId, fileBuffer, mimeType)`
-- Verify participation + verify `conversations.status = 'active'`.
-- Upload to Cloudinary via `uploadToCloudinary(fileBuffer, mimeType, CLOUDINARY_FOLDERS.CHAT)` — store both `image_url` (secure_url) and `image_public_id` (public_id) on the message row.
-- Insert into `messages` with `message_type = 'image'`, `content = ''`, `image_url = <cloudinary url>`, `image_public_id = <public id>`.
-- Update conversation preview to `[Image]`.
-- Emit socket event.
-- Return formatted message.
+### `deleteReview(reviewId, userId)`
+- Fetch review — throw 404 if not found.
+- Verify `review.reviewer_id === userId` — throw 403 if not.
+- Check that `review.created_at` is within `review_edit_window_hours` (from `platform_settings`):
+  ```js
+  const windowHours = await getPlatformSetting('review_edit_window_hours', 24);
+  const windowMs = windowHours * 60 * 60 * 1000;
+  if (Date.now() - new Date(review.created_at).getTime() > windowMs) {
+    throw ApiError.businessRule('The edit window for this review has expired.', 'REVIEW_EDIT_WINDOW_EXPIRED');
+  }
+  ```
+- DELETE the review row.
+- Recalculate reviewee rating (same UPDATE as in `createReview`).
+- Return `{ deleted: true }`.
 
 ---
 
-## Conversation Formatter
+## Validation Schemas
 
 ```js
-function formatConversation(row, currentUserId) {
-  return {
-    id:                   row.id,
-    bookingId:            row.booking_id,
-    bookingStatus:        row.booking_status,
-    otherParticipant: {
-      id:               row.other_participant_id,
-      fullName:         row.other_participant_name,
-      profileImageUrl:  row.other_participant_image
-    },
-    status:               row.status,
-    lastMessageAt:        row.last_message_at || null,
-    lastMessagePreview:   row.last_message_preview || null,
-    createdAt:            row.created_at
-  };
-}
+// reviews.validator.js
+
+const createReviewSchema = Joi.object({
+  bookingId:  commonSchemas.uuid.required(),
+  rating:     Joi.number().integer().min(1).max(5).required(),
+  comment:    Joi.string().trim().min(10).max(1000).optional().allow(''),
+  reviewRole: Joi.string().valid(...Object.values(REVIEW_ROLES)).required()
+});
+
+const reviewIdParamSchema = Joi.object({
+  reviewId: Joi.string().uuid({ version: 'uuidv4' }).required()
+});
+
+const bookingIdParamSchema = Joi.object({
+  bookingId: Joi.string().uuid({ version: 'uuidv4' }).required()
+});
+
+const userIdParamSchema = Joi.object({
+  userId: Joi.string().uuid({ version: 'uuidv4' }).required()
+});
+
+const listReviewsQuerySchema = Joi.object({
+  page:  Joi.number().integer().min(1).default(1),
+  limit: Joi.number().integer().min(1).max(50).default(10)
+});
 ```
 
-## Message Formatter
+---
+
+## Review Formatter
 
 ```js
-function formatMessage(row) {
+function formatReview(row) {
   return {
-    id:             row.id,
-    conversationId: row.conversation_id,
-    senderId:       row.sender_id,
-    senderName:     row.sender_name || null,
-    senderImage:    row.sender_image || null,
-    content:        row.content,
-    messageType:    row.message_type,
-    imageUrl:       row.image_url || null,
-    isRead:         row.is_read,
-    readAt:         row.read_at || null,
-    createdAt:      row.created_at
+    id:          row.id,
+    bookingId:   row.booking_id,
+    reviewerId:  row.reviewer_id,
+    reviewerName: row.reviewer_name || null,
+    reviewerImage: row.reviewer_image || null,
+    revieweeId:  row.reviewee_id,
+    revieweeName: row.reviewee_name || null,
+    rating:      row.rating,
+    comment:     row.comment || null,
+    reviewRole:  row.review_role,
+    isVisible:   row.is_visible,
+    createdAt:   row.created_at,
+    updatedAt:   row.updated_at
   };
 }
 ```
@@ -144,45 +171,20 @@ function formatMessage(row) {
 
 ## Architecture Alignment Notes
 
-- **`GET /me/conversations`** should be nested under `users.routes.js` (following the `/me/*` pattern established for posts, bookings, notifications), NOT a separate top-level route. Add it as `router.get('/me/conversations', authenticate, asyncHandler(chatController.getMyConversations))` in `users.routes.js` before the `/:userId` route.
-- **`/api/v1/chat/*`** is the top-level REST namespace for all other chat endpoints (conversation detail, message list, send message, send image). This gets its own `app.use()` mount in `app.js`.
-- The route `/chat/:conversationId/messages/image` (specific literal path) must be declared **before** `/chat/:conversationId/messages` (param route) — same Express declaration-order rule applied in `posts.routes.js`.
-- Check whether `CLOUDINARY_FOLDERS.CHAT` exists in `constants.js` before using it. If it is missing, add it to `constants.js` first (do not inline the folder name string in `chat.service.js`).
-- No rate limiter is defined for chat send yet — add a `chatMessageLimiter` (e.g. 60 messages/min/user-ID) to `rateLimiter.middleware.js` and apply it to the `POST` message endpoints.
+- **`GET /me/reviews`** follows the `/me/*` sub-resource pattern — wired into `users.routes.js`, not a new top-level mount.
+- **`GET /reviews/users/:userId`** must be declared BEFORE `GET /reviews/:reviewId` in the same router to prevent Express from capturing "users" as a reviewId UUID (it would fail UUID validation, but the ordering is cleaner).
+- **`GET /reviews/bookings/:bookingId`** same issue — literal "bookings" path segment must be declared before any `/:reviewId` route.
+- **Rating recalculation** is a `SELECT AVG()` over all visible reviews for the reviewee — run inside the same operation as the review write/delete, not asynchronously, so the `users.rating` column is always consistent with the `reviews` table.
+- **`getSetting()` pattern**: Follow the existing pattern from `posts.service.js` and `bookings.service.js` — define a local `getPlatformSetting(key, defaultValue)` function at the top of `reviews.service.js` that queries `platform_settings`. Do not extract to a shared module (acknowledged tech debt from Section 32).
+- **No transaction needed** for `createReview`: the compound unique index prevents duplicates atomically, and if the rating recalculation UPDATE fails after a successful review INSERT, the review row is still valid — the rating will be corrected on the next review write. Logs the UPDATE failure instead of rolling back.
+- **`deleteReview` does use a transaction**: delete + rating recalculation must be atomic — a deleted review that doesn't recalculate the rating would leave the user's rating permanently inflated.
 
 ---
 
-## Validation Schemas
-
-```js
-// chat.validator.js
-const conversationIdParamSchema = Joi.object({
-  conversationId: commonSchemas.uuid.required()
-});
-
-const sendMessageSchema = Joi.object({
-  content: Joi.string().trim().min(1).max(2000).required()
-});
-
-const listMessagesQuerySchema = Joi.object({
-  page:  Joi.number().integer().min(1).default(1),
-  limit: Joi.number().integer().min(1).max(50).default(20)
-});
-
-const listConversationsQuerySchema = Joi.object({
-  page:  Joi.number().integer().min(1).default(1),
-  limit: Joi.number().integer().min(1).max(20).default(10)
-});
-```
-
----
-
-## Post-Block-L Checklist (replace this file with Block M brief when done)
-- [ ] `chat.validator.js`, `chat.service.js`, `chat.controller.js`, `chat.routes.js` written and syntax-validated
-- [ ] `CLOUDINARY_FOLDERS.CHAT` confirmed in `constants.js` (add if missing)
-- [ ] `chatMessageLimiter` added to `rateLimiter.middleware.js`
-- [ ] `app.js` updated — `// BLOCK L:` placeholder replaced with live mount
-- [ ] `users.routes.js` updated — `GET /me/conversations` wired in
-- [ ] `PROJECT_CONTEXT.md` Section 6 (folder structure), Section 3.5 (Chat — moved from Partial to Complete), Section 11 (API — new chat endpoints), Section 12 (Services) updated
-- [ ] `CURRENT_STATE.md` updated: Block L in completed list, Block M as next
-- [ ] This file replaced with Block M brief
+## Post-Block-M Checklist (replace this file with Block N brief when done)
+- [ ] `reviews.validator.js`, `reviews.service.js`, `reviews.controller.js`, `reviews.routes.js` written and syntax-validated
+- [ ] `app.js` updated — `// BLOCK M:` placeholder replaced with live mount
+- [ ] `users.routes.js` updated — `GET /me/reviews` wired in
+- [ ] `PROJECT_CONTEXT.md` Section 6 (folder structure), Section 3.6 (Reviews — moved from Pending to Complete), Section 11 (API — new review endpoints), Section 12 (Services) updated
+- [ ] `CURRENT_STATE.md` updated: Block M in completed list, Block N as next
+- [ ] This file replaced with Block N brief

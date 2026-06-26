@@ -171,8 +171,9 @@ const PLATFORM_SETTINGS = Object.freeze({
 // KYC documents use a private folder — access only via signed URLs.
 const CLOUDINARY_FOLDERS = Object.freeze({
   AVATARS: 'goodsgo/avatars',
-  POSTS: 'goodsgo/posts',
-  KYC: 'goodsgo/kyc' // Private — never use public URLs for this folder
+  POSTS:   'goodsgo/posts',
+  CHAT:    'goodsgo/chat',
+  KYC:     'goodsgo/kyc' // Private — never use public URLs for this folder
 });
 
 // ─── HTTP STATUS CODES ───────────────────────────────────────────────────────
@@ -306,6 +307,10 @@ const RATE_LIMITS = Object.freeze({
   BOOKING_REQUEST: {
     WINDOW_MS: 60 * 60 * 1000,
     MAX: 10                     // 10 booking requests per hour per user
+  },
+  CHAT_MESSAGE: {
+    WINDOW_MS: 60 * 1000,       // 1 minute
+    MAX: 60                     // 60 messages per minute per user
   }
 });
 
