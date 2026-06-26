@@ -57,15 +57,29 @@ These rules are non-negotiable and have been followed without exception across e
 
 ## 5. Frontend Guidelines
 
-No frontend code exists yet. When frontend work begins:
+Frontend development is active. The scaffold at `goodsgo-frontend/` contains the complete folder structure with all files as empty stubs awaiting implementation. **The authoritative frontend conventions guide is `docs/FRONTEND_CONTEXT.md`** — read it at the start of every frontend session alongside `docs/FRONTEND_ARCHITECTURE.md`. The rules below are the binding high-level constraints; `docs/FRONTEND_CONTEXT.md` expands on each with implementation detail.
 
-- Stack: React 18 + Vite, React Router v6, Tailwind CSS, Axios, Zustand, TanStack React Query, React Hook Form + Yup, Leaflet/react-leaflet, Socket.io-client, PropTypes (not TypeScript — the no-TypeScript rule applies to the frontend too).
-- The backend's response envelope is always `{ success, message, data?, meta?, errors?, code? }`. Build a single Axios interceptor that unwraps this consistently — do not unwrap it ad hoc per call site.
-- The access token lives in memory (React state / Zustand) only. Never store it in `localStorage` or `sessionStorage` — this was an explicit backend security decision (XSS mitigation) and the frontend must honor it.
-- The refresh token is an httpOnly cookie the frontend never reads or writes directly. Axios must be configured with `withCredentials: true` so the browser sends it automatically to `/api/v1/auth/*`.
-- Fetch dropdown/reference data (`vehicle_types`, `goods_categories`) from `GET /api/v1/config/options` at app startup. Do not hardcode these lists in frontend constants — the backend reference tables are the source of truth.
-- Form validation duplicates backend Joi rules in Yup by design (no shared-schema tooling exists yet — see `PROJECT_CONTEXT.md` Section 32). Keep both in sync by hand whenever a validation rule changes on either side; do not let them silently drift.
-- Mirror the backend's folder-per-feature organization: `components/<feature>/`, `pages/<feature>/`, `services/<feature>.service.js`, one Axios service file per backend module.
+**Stack — what is actually installed (differs from the original plan in `docs/PROJECT_CONTEXT.md` Section 7):**
+- React 19.1.1 (originally planned: React 18 — do not downgrade; React 19 is in use)
+- React Router DOM v7.9.3 (originally planned: v6 — v7 component API is in use; do not introduce Data Router loaders/actions without an explicit decision)
+- Tailwind CSS v4.1.14 via `@tailwindcss/vite` (originally planned: Tailwind v3 + PostCSS — CSS-first config, no `tailwind.config.js` required)
+- Remaining packages (Axios, Zustand, TanStack React Query, React Hook Form + Yup, Leaflet/react-leaflet, Socket.io-client, react-hot-toast, PropTypes, date-fns) are planned but not yet installed — add each package only when the module that first needs it is built, not speculatively
+
+**Non-negotiable rules (these are binding and not overridable by convenience):**
+- No TypeScript. This constraint from Section 2 applies to the frontend equally. PropTypes are the frontend's substitute for TypeScript prop types — **every component that accepts props must declare `ComponentName.propTypes = { ... }` at the bottom of its file.** No exceptions.
+- ESM modules (`import`/`export`) in frontend files — the opposite of the backend's CommonJS. `'use strict';` is not required in ESM files. Do not confuse the two module systems.
+- No business logic inside components. Logic belongs in `src/hooks/` (custom hooks) and `src/services/` (Axios service functions). Components receive data via props or React Query hooks and return JSX.
+- **No direct Axios calls from components or hooks.** All API calls go through `src/services/` files. Hooks call services; components call hooks.
+- **Access token: Zustand memory only. Never `localStorage`, never `sessionStorage`.** This is a backend-driven security requirement (XSS mitigation — `docs/PROJECT_CONTEXT.md` Section 10.1) that the frontend must honour unconditionally.
+- **Refresh token: httpOnly cookie only.** The frontend never reads or writes it. Axios must be configured with `withCredentials: true`. The 401 response interceptor handles automatic refresh — see `docs/FRONTEND_CONTEXT.md` Section 6 for the full interceptor contract.
+- **Single Axios response interceptor** unwraps the backend envelope (`{ success, message, data, meta, errors, code }`) for all user API calls. Never unwrap the envelope ad hoc per call site.
+- **Reference data (`vehicle_types`, `goods_categories`) fetched from `GET /api/v1/config/options` at app startup** via React Query with `staleTime: Infinity`. Do not hardcode these lists in frontend constants — the backend tables are the source of truth.
+- **Yup form schemas mirror backend Joi schemas** for the same endpoint. Keep both in sync whenever a validation rule changes on either side — no shared-schema tooling exists (see `docs/PROJECT_CONTEXT.md` Section 32).
+- **Folder-per-feature structure:** `src/components/<feature>/`, `src/pages/<feature>/`, `src/services/<feature>.service.js` — one service file per backend module. See `docs/FRONTEND_ARCHITECTURE.md` for the complete, verified file map.
+- All route paths are defined as constants in `src/constants/routes.js` and imported from there. Never hardcode path strings in `<Link>` or `navigate()` calls.
+- No raw `<button>`, `<input>`, or `<select>` tags in pages or feature components — use the shared components from `src/components/common/`.
+
+**Admin panel:** Treat as a completely separate product. Separate Zustand store (`useAdminStore`), separate Axios instance (`adminApi`), separate login page (`/admin/login`), separate JWT secret (`JWT_ADMIN_SECRET`). Never mix user token state with admin token state. See `docs/FRONTEND_CONTEXT.md` Section 6 for the full admin auth contract.
 
 ---
 
@@ -124,6 +138,28 @@ Do not introduce a different casing convention for any of the above categories w
 - Every new module, upon completion, requires an update to `docs/PROJECT_CONTEXT.md`: the folder structure tree (Section 6), the relevant Services/API/Features sections, and — critically — the "Known Issues" and "Pending Features" sections must be re-checked and corrected, not left stale. A finished module that isn't reflected in `PROJECT_CONTEXT.md` is treated as an incomplete task.
 - Any deviation from the established architecture (new file outside the numbered plan, modification to an existing file's contract, renamed/moved file) must be documented inline at the point of change with a comment explaining why, and surfaced to the user in the same turn it happens — not discovered later. This mirrors the "Architecture Alignment Check" discipline already established earlier in this project's history and must continue for all future work, not just the initial buildout phase.
 - Do not generate speculative documentation for features that don't exist yet. Document what is built, mark what is planned as "Pending" or "Not implemented," per the existing convention in `PROJECT_CONTEXT.md`.
+
+### Frontend Documentation System
+
+The repository has a five-file frontend documentation system in `docs/`. Each file has a distinct, non-overlapping responsibility. Together with `docs/PROJECT_CONTEXT.md` they form the complete engineering memory for the full repository.
+
+| File | Responsibility | Authority for |
+|---|---|---|
+| `docs/PROJECT_CONTEXT.md` | Backend architecture, API behaviour, business rules, known issues | Backend — do not write frontend implementation decisions here |
+| `docs/FRONTEND_CONTEXT.md` | Frontend conventions, stack decisions, auth flow, global state, Axios/socket integration | All cross-cutting frontend engineering rules |
+| `docs/FRONTEND_MODULE_CONTEXT.md` | Active frontend module brief (≤150 lines, one module at a time) | What to build in the current session |
+| `docs/FRONTEND_ARCHITECTURE.md` | Complete `goodsgo-frontend/src/` folder tree with every file's responsibility | Folder structure and file map |
+| `docs/API_CONTRACT.md` | Frontend-to-backend integration contract for every endpoint | Request shape, query keys, cache invalidation, error handling from the frontend's view |
+| `docs/UI_COMPONENT_GUIDE.md` | Reusable component catalogue (`src/components/common/`) | Props, variants, loading/error/empty states, form and toast conventions |
+
+**Hierarchy rule:** `docs/PROJECT_CONTEXT.md` is the single source of truth for backend architecture and API behaviour. The five frontend docs are the single source of truth for frontend implementation. The two systems reference each other and never duplicate each other. A reader of `docs/API_CONTRACT.md` can look up `docs/PROJECT_CONTEXT.md` Section 11 for the backend contract; `docs/API_CONTRACT.md` documents only the frontend integration perspective.
+
+**Maintenance rule for frontend docs:**
+- `docs/FRONTEND_MODULE_CONTEXT.md` — regenerate completely after every completed frontend module. It must always describe only the next module to be built. ≤150 lines always.
+- `docs/FRONTEND_ARCHITECTURE.md` — update only when files are added, moved, or their purpose changes.
+- `docs/UI_COMPONENT_GUIDE.md` — update when a new `src/components/common/` component is added.
+- `docs/API_CONTRACT.md` — update only when a backend API endpoint changes (method, path, request body, or response shape).
+- `docs/FRONTEND_CONTEXT.md` — update only when a stack decision is reversed or a new cross-cutting engineering convention is established.
 
 ---
 
@@ -240,6 +276,19 @@ Before considering any change complete, verify:
 - [ ] No new file added outside the established `modules/<name>/<name>.<role>.js` pattern without explicit flagging and justification.
 - [ ] No migration file added/changed without explicit user confirmation, given the locked 18-file constraint.
 
+**For frontend changes, additionally verify:**
+- [ ] No TypeScript; ESM modules (`import`/`export`) only in frontend files.
+- [ ] `ComponentName.propTypes = { ... }` declared on every component that accepts props.
+- [ ] No API call made directly from a component — all calls go through `src/services/` files, consumed by hooks.
+- [ ] No auth token stored in `localStorage` or `sessionStorage` (verifiable in browser DevTools → Application tab).
+- [ ] Access token stored in Zustand only; `withCredentials: true` on all Axios instances.
+- [ ] Query keys follow the standard array form defined in `docs/FRONTEND_CONTEXT.md` Section 8.
+- [ ] Mutations invalidate relevant query keys on success — cache is not patched manually unless optimistic update is explicitly documented.
+- [ ] Manual testing checklist from `docs/FRONTEND_MODULE_CONTEXT.md` executed against a running `npm run dev` server.
+- [ ] `docs/FRONTEND_ARCHITECTURE.md` updated if files were added outside the existing scaffold.
+- [ ] `docs/UI_COMPONENT_GUIDE.md` updated if a new `src/components/common/` component was created.
+- [ ] `docs/FRONTEND_MODULE_CONTEXT.md` regenerated for the next module before the session ends.
+
 ---
 
 ## 19. Definition of Done
@@ -255,6 +304,14 @@ A task is **not** done when the code merely runs. A task is done when:
 7. Any deviation from existing architecture has been explicitly surfaced to the user with reasoning — not silently introduced.
 8. Syntax has been validated (`node --check` or equivalent) on every touched file.
 9. If the change touches `bookings`, `payments`, `users` (financial/trust fields), or auth/token logic, the reasoning behind correctness — especially around concurrency and state transitions — has been explained, not just the code dropped in.
+
+**For frontend tasks, a task is additionally done when:**
+
+10. Every component that accepts props has `propTypes` declared.
+11. The module's manual testing checklist in `docs/FRONTEND_MODULE_CONTEXT.md` has been executed against a running dev server — not merely syntax-checked or inferred from code inspection. No auth token must exist in `localStorage` or `sessionStorage` at any point in the auth flow.
+12. `docs/FRONTEND_MODULE_CONTEXT.md` has been regenerated for the next module (or explicitly marked as the final module if this was the last one).
+13. `docs/FRONTEND_ARCHITECTURE.md` reflects any new files added or stub files that are now implemented.
+14. If the change wires a new Axios service call, the corresponding entry in `docs/API_CONTRACT.md` has been verified to match the actual request being made — no silent drift between the contract doc and the service file.
 
 ---
 
@@ -288,6 +345,8 @@ Every new backend module under `src/modules/<name>/` must include, at minimum:
 - Do not invent business decisions that were never made (commission rates, default credentials, category lists, etc.) and present them as settled fact. If a value was chosen as a reasonable placeholder during implementation rather than explicitly confirmed by the project owner, document it as a "Pending Decision" or "Assumption," exactly as `docs/PROJECT_CONTEXT.md` Section 40 already does — and continue that practice for all future documentation.
 - Keep `docs/PROJECT_CONTEXT.md` as the single living source of truth for project state. Do not create competing or duplicate status documents elsewhere in the repo. Architecture-review documents, testing checklists, and migration reports produced during a task are fine as ephemeral chat output, but any conclusion that should persist belongs back in `PROJECT_CONTEXT.md`, not left only in chat history.
 - When documenting an API, list method, path, auth requirement, rate limit (if any), and a one-line behavior note — matching the table format already established in `PROJECT_CONTEXT.md` Section 11. Don't switch documentation formats module-to-module.
+- **Frontend documentation has its own update protocol** governed by Section 25. The critical constraint is that `docs/FRONTEND_MODULE_CONTEXT.md` must never describe more than one module at a time and must never exceed 150 lines. Regenerate it for the next module immediately after completing the current one — not mid-module and not retroactively at the start of the next session.
+- Do not write frontend implementation details (component props, React Query hook names, Zustand store shape, Yup schemas) into `docs/PROJECT_CONTEXT.md`. Do not write backend API behaviour (SQL, middleware chain, service layer logic) into the frontend documentation files. The two systems are designed to reference each other, not to absorb each other.
 
 ---
 
@@ -306,6 +365,65 @@ Every new backend module under `src/modules/<name>/` must include, at minimum:
 - Never refactor working, tested-by-checklist code purely for style preference. The existing codebase has a consistent style (Section 8, Section 19/20 of `PROJECT_CONTEXT.md`) — matching it is the goal, not improving on it speculatively.
 - Large rewrites are discouraged categorically. If a file has accumulated real problems that genuinely warrant a rewrite (not just imperfection), propose the rewrite explicitly, explain why an incremental fix won't suffice, and get confirmation before doing it — do not discover mid-task that a "small fix" became a full file rewrite without flagging the scope change as it happens.
 - Consolidating genuine duplication (e.g., the documented `getSetting()`/`getPlatformSetting()` duplication) is acceptable refactoring **when it is the explicit task**, not as a side effect of an unrelated change.
+
+---
+
+## 25. Frontend Development Workflow
+
+This section defines the module-by-module lifecycle for frontend development. Follow it without deviation — the documentation system is designed around this protocol.
+
+### Before every frontend session (mandatory reads)
+
+Read these two files at the start of every frontend development session before writing a single line of code:
+
+1. **`docs/FRONTEND_CONTEXT.md`** — conventions, auth flow, Axios/Zustand/React Query rules, socket integration, form conventions. Read in full on the first session; skim on return sessions to catch any updates.
+2. **`docs/FRONTEND_MODULE_CONTEXT.md`** — the active module's goal, files to create/modify, APIs required, component relationships, and testing checklist. This is the session's primary directive.
+
+Read these on demand (when the active work requires them):
+
+3. **`docs/FRONTEND_ARCHITECTURE.md`** — before creating any new file, to confirm where it belongs and that it doesn't already exist.
+4. **`docs/API_CONTRACT.md`** — before wiring any service call, to verify the exact request shape, query key, and error handling expectation.
+5. **`docs/UI_COMPONENT_GUIDE.md`** — before building any UI element, to check whether a reusable component in `src/components/common/` already covers the need.
+6. **`docs/PROJECT_CONTEXT.md` Section 11** — when an API endpoint's backend behaviour (not just its frontend integration contract) is unclear.
+
+### During a frontend module
+
+- Implement exactly the files listed in `docs/FRONTEND_MODULE_CONTEXT.md`. Do not implement the next module's files opportunistically.
+- Every component file gets `propTypes` before the module is considered done — not as a final cleanup pass, but incrementally as each component is written.
+- Run `npm run dev` and verify each new feature works in the browser before marking it complete. Syntax-checking alone (`node --check` or ESLint passing) is not sufficient — this is a frontend, and visual/interactive behaviour is what matters.
+
+### After completing a frontend module (mandatory updates)
+
+These updates are part of the module task, not separate cleanup work:
+
+| Action | File to update | What to do |
+|---|---|---|
+| Regenerate active module brief | `docs/FRONTEND_MODULE_CONTEXT.md` | Replace entirely with the next module's brief. Never append history. ≤150 lines. |
+| Mark implemented files | `docs/FRONTEND_ARCHITECTURE.md` | Remove "empty stub" notes from files that are now implemented; add any new files created outside the scaffold |
+| Add new components | `docs/UI_COMPONENT_GUIDE.md` | Add a catalogue entry for any new `src/components/common/` component following the existing entry format |
+
+### Stable files (updated only on specific triggers, not per-module)
+
+| File | Update trigger |
+|---|---|
+| `docs/FRONTEND_CONTEXT.md` | A new package is installed, a stack decision is reversed, or a new cross-cutting convention is established |
+| `docs/API_CONTRACT.md` | A backend API endpoint changes — method, path, request body, response shape, or error code |
+| `docs/PROJECT_CONTEXT.md` | Never during frontend work unless a backend change was also made in the same session |
+| `CLAUDE.md` (this file) | A new technology is introduced, a section's rules are formally revised, or the project phase changes |
+
+### Frozen files (never modified during frontend development)
+
+- `docs/PROJECT_CONTEXT.md` — backend team owns this; backend is complete.
+- `docs/CURRENT_STATE.md` — reflects backend state; update only if a backend change is made.
+- `docs/MODULE_CONTEXT.md` — backend module context; superseded by the frontend docs for all frontend work.
+
+### Module build sequence
+
+The recommended sequence is defined in `docs/FRONTEND_ARCHITECTURE.md` Section 11. Build modules in order — later modules depend on the Axios instance, Zustand stores, and React Query providers established in FE-1. Do not skip ahead and do not split a single logical module across multiple sessions without updating `docs/FRONTEND_MODULE_CONTEXT.md` to reflect the partial state at the session boundary.
+
+### Context efficiency rationale
+
+Loading `docs/FRONTEND_CONTEXT.md` (~300 lines) and `docs/FRONTEND_MODULE_CONTEXT.md` (≤150 lines) at the start of a session uses approximately 450 lines of context for the session's complete navigational map. The larger reference files (`docs/API_CONTRACT.md` at ~600 lines, `docs/FRONTEND_ARCHITECTURE.md` at ~370 lines) are loaded only on demand. This design keeps mandatory per-session context consumption low while ensuring the full engineering memory is always reachable — the same philosophy as using `docs/MODULE_CONTEXT.md` during backend development.
 
 ---
 
