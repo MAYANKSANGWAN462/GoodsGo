@@ -186,6 +186,28 @@ const chatMessageLimiter = rateLimit({
   message: 'You are sending messages too quickly. Please slow down and try again.'
 });
 
+// ─── Payment Initiate Limiter ─────────────────────────────────────────────────
+/**
+ * paymentInitiateLimiter — Applied to POST /payments/initiate.
+ *
+ * 10 initiations per hour per USER (not per IP).
+ * Prevents a compromised account from generating unlimited Razorpay orders.
+ * Per-user key same reasoning as postCreateLimiter — follows user across IP changes.
+ *
+ * Falls back to IP if user is absent (safety guard — route requires auth).
+ *
+ * Applied in: payments.routes.js
+ */
+const paymentInitiateLimiter = rateLimit({
+  ...baseOptions,
+  windowMs: RATE_LIMITS.PAYMENT_INITIATE.WINDOW_MS, // 1 hour
+  max: RATE_LIMITS.PAYMENT_INITIATE.MAX,             // 10 initiations
+  keyGenerator: (req) => {
+    return req.user ? `payment_init:user:${req.user.id}` : `payment_init:ip:${req.ip}`;
+  },
+  message: 'You can initiate a maximum of 10 payments per hour. Please try again later.'
+});
+
 module.exports = {
   authLimiter,
   forgotPasswordLimiter,
@@ -194,5 +216,6 @@ module.exports = {
   uploadLimiter,
   postCreateLimiter,
   bookingLimiter,
-  chatMessageLimiter
+  chatMessageLimiter,
+  paymentInitiateLimiter
 };

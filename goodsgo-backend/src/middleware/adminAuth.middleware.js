@@ -196,8 +196,8 @@ const requireAdminRole = (requiredRole) => {
  * Place AFTER the route handler has executed its action and sent a response.
  * Note: This is a fire-and-forget logger — it does NOT block the response.
  *
- * BLOCK O: This middleware is wired into admin routes when admin.routes.js
- * is generated. It requires the admin_audit_logs table from migration 022.
+ * Wired into admin routes (admin.routes.js). Requires the admin_audit_logs
+ * table created by migration 020_create_admin_audit_logs.sql.
  *
  * @param {string} actionType - Human-readable action name (e.g. 'suspend_user')
  * @param {string} targetType - Entity type (e.g. 'user', 'post', 'booking')

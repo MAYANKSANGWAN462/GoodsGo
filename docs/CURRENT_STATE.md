@@ -1,14 +1,19 @@
 # GoodsGo — Current Development State
 
 > **Purpose:** Concise snapshot of where development stands right now.  
-> **Last updated:** 2026-06-26 (after Block M — Reviews Module)  
+> **Last updated:** 2026-06-26 (after Block O — Admin Module)  
 > **Source of truth for architecture/requirements:** `docs/PROJECT_CONTEXT.md`
 
 ---
 
 ## Current Project Phase
 
-Backend MVP — Block M complete. The Reviews module is now fully implemented: both parties to a completed booking can submit reviews, ratings are recalculated on every write/delete, review-received notifications fire automatically, and the platform-configured edit window is enforced on deletion. Frontend not started. Payments, Admin modules not yet built.
+Backend MVP — Block O complete. All planned backend modules are now implemented. The Admin module provides full user management (suspend/reactivate), post moderation (hide/restore), report review and resolution, dispute resolution, payment release/refund delegation, and platform settings management — all behind admin JWT authentication with a three-tier role hierarchy and comprehensive audit logging. Two new migration files (019, 020) were approved and added to support the `disputes` and `admin_audit_logs` tables. The previously-locked 18-migration set is now 20 files. Frontend project exists (Vite+React) but backend integration not started.
+
+**Pre-block-O blockers resolved this session:**
+- `disputes` table created (migration 019).
+- `admin_audit_logs` table created (migration 020).
+- `adminAuth.middleware.js` JSDoc stale reference ("migration 022") corrected to "migration 020".
 
 ---
 
@@ -16,24 +21,26 @@ Backend MVP — Block M complete. The Reviews module is now fully implemented: b
 
 | Area | Progress | Notes |
 |---|---|---|
-| Backend | ~85% complete (98 / 105 planned files) | Syntax-validated; never run against a live database |
-| Frontend | 0% | Zero files exist |
-| Database | Schema 100% designed, 18 migrations written | Never executed against a real Postgres instance |
+| Backend | ~100% complete (all planned modules) | Syntax-validated; never run against a live database |
+| Frontend | Exists (Vite+React scaffold) | No backend integration yet; backend is now stable |
+| Database | Schema 100% designed, 20 migrations written | Never executed against a real Postgres instance |
 | Deployment | 0% | No hosting account confirmed, no CI/CD |
 
 ---
 
 ## Completed Blocks (in order)
 
-`A → B → C → D → E → F → H → K → I → J → L → M`
+`A → B → C → D → E → F → H → K → I → J → L → M → N → O`
 
-Block M included:
-- **`src/modules/reviews/reviews.validator.js`** — 5 Joi schemas: `createReviewSchema`, `reviewIdParamSchema`, `bookingIdParamSchema`, `userIdParamSchema`, `listReviewsQuerySchema`.
-- **`src/modules/reviews/reviews.service.js`** — 5 exported functions: `createReview`, `getBookingReviews`, `getMyReviews`, `getUserReviews`, `deleteReview`. Includes lazy-require notification pattern, local `getPlatformSetting()` helper, and `formatReview()` formatter.
-- **`src/modules/reviews/reviews.controller.js`** — 5 thin asyncHandler-wrapped handlers.
-- **`src/modules/reviews/reviews.routes.js`** — 4 routes mounted at `/api/v1/reviews`; literal-path routes (`/bookings/:id`, `/users/:id`) declared before `/:reviewId` per Express route-ordering rule.
-- **`src/app.js`** — `// BLOCK M:` placeholder replaced with live `app.use('/api/v1/reviews', ...)` mount.
-- **`src/modules/users/users.routes.js`** — `GET /me/reviews` wired before `/:userId` route.
+Block O included:
+- **`src/db/migrations/019_create_disputes.sql`** — `disputes` table + `dispute_status_enum`; depends on migrations 001, 002, 008, 017; resolves the P0 blocker on `PUT /bookings/:id/dispute`.
+- **`src/db/migrations/020_create_admin_audit_logs.sql`** — `admin_audit_logs` table; depends on migration 017; unlocks `logAdminAction` on all admin mutation routes.
+- **`src/modules/admin/admin.validator.js`** — 16 Joi schemas covering all admin input shapes (new file, approved as part of Block O for four-file module consistency).
+- **`src/modules/admin/admin.service.js`** — 16 exported functions across 6 domains (user management, post moderation, reports, disputes, payments, platform settings).
+- **`src/modules/admin/admin.controller.js`** — 16 thin `asyncHandler`-wrapped handlers.
+- **`src/modules/admin/admin.routes.js`** — 16 routes mounted at `/api/v1/admin`; all behind `authenticateAdmin`; mutations use `logAdminAction`.
+- **`src/app.js`** — `// BLOCK O:` placeholder replaced with live `app.use('/api/v1/admin', ...)` mount.
+- **`src/middleware/adminAuth.middleware.js`** — JSDoc corrected (stale "migration 022" → "migration 020").
 
 ---
 
@@ -44,74 +51,55 @@ Block M included:
 | Core utilities & infrastructure (`ApiError`, `ApiResponse`, `asyncHandler`, `paginate`, etc.) | A | Complete |
 | Config layer (`database.js`, `cloudinary.js`, `email.js`, `socket.js`) | B | Complete |
 | Middleware stack (error handler, sanitize, validate, rate limiter, auth, adminAuth, upload) | C | Complete |
-| Database migrations (001–018) + seeds (admin, vehicle types, goods categories, platform settings) | D | Complete |
+| Database migrations (001–020) + seeds (admin, vehicle types, goods categories, platform settings) | D / O | Complete — 20 migrations total |
 | Auth module (register, login, logout, refresh, verify, reset, resend) | E | Complete |
 | Users module (profile CRUD, avatar, password change, deactivation, public profile) | F | Complete |
 | Location module (geocode, reverse-geocode) | H | Complete |
 | Posts module (feed, CRUD, images, search, nearby, save, report, getPostBookings) | H | Complete |
 | Config routes (`GET /config/options`) | H | Complete |
 | Cron job (`expirePosts.job.js` — hourly post expiry + booking auto-reject) | H | Complete |
-| Bookings module (full 9-state machine, FOR UPDATE lock, conversation auto-creation) | K | Complete (dispute endpoint broken — see Blockers) |
+| Bookings module (full 9-state machine, FOR UPDATE lock, conversation auto-creation) | K | Complete — `PUT /bookings/:id/dispute` now unblocked (disputes table exists) |
 | Notifications module (`createNotification`, `listNotifications`, `markOneRead`, `markAllRead`) | I | Complete |
 | Socket Handlers (`socket.handler.js`, `chat.socket.js`, `notification.socket.js`) | J | Complete |
-| Chat REST API (`chat.validator.js`, `chat.service.js`, `chat.controller.js`, `chat.routes.js`) | L | Complete — full chat feature now functional (REST + Socket) |
-| **Reviews module** (`reviews.validator.js`, `reviews.service.js`, `reviews.controller.js`, `reviews.routes.js`) | **M** | **Complete** — two-sided reviews, rating recalculation, edit-window enforcement |
+| Chat REST API (`chat.validator.js`, `chat.service.js`, `chat.controller.js`, `chat.routes.js`) | L | Complete |
+| Reviews module | M | Complete |
+| Payments module | N | Complete — Razorpay order creation, signature verification, webhook handling, release/refund |
+| **Admin module** (`admin.validator.js`, `admin.service.js`, `admin.controller.js`, `admin.routes.js`) | **O** | **Complete** — user management, post moderation, report/dispute resolution, payment actions, platform settings |
 
 ---
 
 ## Partially Completed Modules
 
-| Module | What Exists | What Is Missing |
-|---|---|---|
-| **Payments** | DB schema (migration 013). `payment_deadline` set on acceptance; `auto_release_at` set on completion. | No payment service, no Razorpay SDK calls, no webhook handler. `razorpay` npm package also missing. Block N not started. |
-| **Admin** | `adminAuth.middleware.js` fully built. `admin_users`, `platform_settings`, `reported_posts` tables exist. | No admin service/controller/routes. `logAdminAction` references `admin_audit_logs` table that does not exist. Block O not started. |
+None. All planned backend modules are implemented.
 
 ---
 
 ## Pending Modules (Not Started)
 
-- **Block N** — Payments module (4 files; requires `razorpay` installed first)
-- **Block O** — Admin module (3 files; requires `disputes` + `admin_audit_logs` tables first)
-- **Frontend** — Zero files; full planned stack documented in `PROJECT_CONTEXT.md` Section 7
+- **Frontend** — Vite+React scaffold exists; no backend integration
+- **Block P / KYC** — No block assigned. `uploadImage.js` has `uploadIdentityDocument()` helper ready; no `identity_documents` table, no service, no endpoint.
 
 ---
 
 ## Current Active Module
 
-None in progress. **Block N (Payments)** is the designated next block.
+None. **Backend MVP is complete.** Recommended next step is frontend integration or production deployment.
 
 ---
 
 ## Current Milestone
 
-Block N — Integrate Razorpay for escrow-style payment processing: customer pays on acceptance, platform holds funds, releases to transporter on completion.
+Backend MVP complete. All 16 planned API surface areas are live. Next milestone: frontend development or staging deployment.
 
 ---
 
 ## Exact Next Development Task
 
-**Block N — Payments Module (4 files):**
+Choose one of:
 
-1. `src/modules/payments/payments.validator.js` — Joi schemas for payment initiation, webhook verification, refund request
-2. `src/modules/payments/payments.service.js`:
-   - `initiatePayment(bookingId, payerId)` — create Razorpay order, insert payments row
-   - `verifyPayment(orderId, paymentId, signature)` — HMAC signature check, mark payment completed
-   - `handleWebhook(event, signature)` — verify webhook signature, route to correct handler
-   - `releasePayment(bookingId)` — manual escrow release (admin/cron)
-   - `refundPayment(bookingId, amount, reason)` — Razorpay refund API call
-3. `src/modules/payments/payments.controller.js` — thin asyncHandler handlers
-4. `src/modules/payments/payments.routes.js`:
-   - `POST /api/v1/payments/initiate` — create Razorpay order
-   - `POST /api/v1/payments/verify` — confirm payment signature
-   - `POST /api/v1/payments/webhook` — Razorpay webhook (no auth, HMAC-verified)
-   - Wire `app.use('/api/v1/payments', ...)` into `app.js` replacing `// BLOCK N:`.
-
-**Pre-conditions:**
-- Block M complete ✓
-- `razorpay` npm package must be installed: `npm install razorpay@^2.9.4`
-- migration 013 (`payments` table with full Razorpay fields) ✓
-- `PAYMENT_STATUS`, `NOTIFICATION_TYPES.PAYMENT_RECEIVED`, `NOTIFICATION_TYPES.PAYMENT_RELEASED` in `constants.js` ✓
-- `bookings.service.js` already sets `payment_deadline` on accept and `auto_release_at` on complete ✓
+1. **Frontend integration** — begin React frontend using the Vite+React scaffold; connect to the now-stable backend API.
+2. **Production deployment** — connect Neon.tech Postgres, run all 20 migrations + 4 seeds, deploy backend to Render/Railway, configure Razorpay test credentials.
+3. **KYC / identity verification** — assign a block letter, create `identity_documents` migration, build the module.
 
 ---
 
@@ -119,44 +107,42 @@ Block N — Integrate Razorpay for escrow-style payment processing: customer pay
 
 | Priority | Issue | Location | Effect |
 |---|---|---|---|
-| 🔴 P0 | `disputes` table does not exist | `bookings.service.js: raiseDispute()` | `PUT /bookings/:id/dispute` throws 500. |
-| 🔴 P0 | `admin_audit_logs` table does not exist | `adminAuth.middleware.js: logAdminAction()` | Will throw when Block O wires admin routes. |
-| 🟠 P1 | `razorpay` missing from `package.json` | Not yet triggered | Will fail at Block N. Fix: `npm install razorpay@^2.9.4`. |
+| 🟠 P1 | `razorpay` npm package added to `package.json` but **not yet installed** | `payments.service.js` | Will fail at runtime until `npm install` is run in `goodsgo-backend/`. |
 | 🟡 P2 | `ADMIN_EMAIL`/`ADMIN_PASSWORD`/`ADMIN_FULL_NAME` not in `.env.example` | `seed_admin.js` | Functional with insecure hardcoded fallback defaults. |
-| 🟡 P2 | Stale JSDoc in `logAdminAction` references "migration 022" | `adminAuth.middleware.js` | Cosmetic; correct when Block O is built. |
+| 🟡 P2 | `logAdminAction` target_id is null for `:reportId` and `:disputeId` routes | `adminAuth.middleware.js` | Audit log records action_type + target_type correctly but target_id = NULL for report/dispute routes. Minor limitation; action is still traceable. |
 
 ---
 
 ## Important TODOs
 
-- [ ] Run `npm install` — lock in `"axios": "^1.7.9"` added in Block I
-- [ ] `npm install razorpay@^2.9.4` — required before Block N
-- [ ] Get user approval to add migration files for `disputes` + `admin_audit_logs` (locked at 18)
-- [ ] Connect to a real PostgreSQL instance (Neon.tech) and run migrations + seeds
-- [ ] Build Block N (Payments)
-- [ ] Build Block O (Admin) — after disputes/admin_audit_logs tables resolved
-- [ ] Begin frontend project once backend blocks are confirmed stable against a live DB
+- [ ] **Run `npm install`** in `goodsgo-backend/` — installs `razorpay@^2.9.4`
+- [ ] Set `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` in `.env`
+- [ ] Connect to a real PostgreSQL instance (Neon.tech) and run all 20 migrations + 4 seed scripts
+- [ ] Manually test Block O admin endpoints against a live server with admin credentials
+- [ ] Manually test Block N payment endpoints against a live server with Razorpay test credentials
+- [ ] Begin frontend development or production deployment
 
 ---
 
 ## Recently Completed Work
 
-- **Block M — Reviews Module:**
-  - `reviews.validator.js` — 5 Joi schemas
-  - `reviews.service.js` — 5 service functions: createReview (role-validated, best-effort rating recalc), getBookingReviews (party-only), getMyReviews (paginated), getUserReviews (public, paginated), deleteReview (transactional — delete + rating recalc atomic)
-  - `reviews.controller.js` — 5 thin asyncHandler controllers
-  - `reviews.routes.js` — 4 routes; literal-path routes before `:reviewId` per declaration-order rule
-  - `app.js` — `// BLOCK M:` placeholder replaced with live mount
-  - `users.routes.js` — `GET /me/reviews` wired before `/:userId`
-  - All 6 files passed `node --check` syntax validation.
+**Block O — Admin Module:**
+- `019_create_disputes.sql` — disputes table + dispute_status_enum (resolves P0 blocker)
+- `020_create_admin_audit_logs.sql` — admin_audit_logs table (unlocks logAdminAction)
+- `admin.validator.js` — 16 Joi schemas (new file, approved)
+- `admin.service.js` — 16 service functions: listUsers, getUserDetail, suspendUser (with transactional post deactivation), reactivateUser, listPostsAdmin, hidePost, restorePost, listReports, resolveReport, dismissReport, listDisputes, getDisputeDetail, resolveDispute (with DISPUTE_RESOLVED notification dispatch to both parties), releasePaymentAdmin, refundPaymentAdmin, getPlatformSettings, updatePlatformSetting (with value_type validation)
+- `admin.controller.js` — 16 thin asyncHandler handlers
+- `admin.routes.js` — 16 routes; `authenticateAdmin` applied globally via `router.use()`; mutations use `logAdminAction`; role-gated (moderator/admin/super_admin per endpoint group)
+- `app.js` — `// BLOCK O:` replaced with live mount
+- `adminAuth.middleware.js` — JSDoc corrected
+- All 6 JS files passed `node --check` syntax validation.
 
 ---
 
 ## Recommended Next Steps
 
-1. `npm install` — lock in axios addition.
-2. `npm install razorpay@^2.9.4` — required before Block N.
-3. Connect a real Neon.tech Postgres instance and run all 18 migrations + 4 seed scripts.
-4. Manually test Block M REST endpoints against the live server.
-5. Raise migration-lock question and get sign-off on `disputes`/`admin_audit_logs` tables before starting Block O.
-6. Build Block N (Payments).
+1. **`npm install`** — installs `razorpay` and locks it into `node_modules`.
+2. Add Razorpay test credentials to `.env`.
+3. Connect a real Neon.tech Postgres instance and run all 20 migrations + 4 seed scripts.
+4. Manually test Block N payment endpoints and Block O admin endpoints.
+5. Begin frontend development.

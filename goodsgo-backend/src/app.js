@@ -88,7 +88,19 @@ app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 // 4. Body Parsers
 //    Limit sizes prevent JSON/form payload bombs (DoS protection).
 //    10kb is generous for API payloads while blocking abuse.
-app.use(express.json({ limit: '10kb' }));
+//
+//    The `verify` callback captures the raw body Buffer on `req.rawBody`
+//    for routes whose path contains '/webhook'. This is required by Razorpay's
+//    webhook signature verification (HMAC must be computed on the exact raw bytes
+//    before JSON parsing — the parsed object is not equivalent for HMAC purposes).
+app.use(express.json({
+  limit: '10kb',
+  verify: (req, res, buf) => {
+    if (req.path && req.path.includes('/webhook')) {
+      req.rawBody = buf;
+    }
+  }
+}));
 app.use(express.urlencoded({ extended: false, limit: '10kb' }));
 
 // 5. Input Sanitization
@@ -134,8 +146,8 @@ app.use('/api/v1/config',   require('./modules/config/config.routes'));
 app.use('/api/v1/bookings', require('./modules/bookings/bookings.routes'));
 app.use('/api/v1/chat',     require('./modules/chat/chat.routes'));
 app.use('/api/v1/reviews',  require('./modules/reviews/reviews.routes'));
-// BLOCK N: app.use('/api/v1/payments', require('./modules/payments/payments.routes'));
-// BLOCK O: app.use('/api/v1/admin',    require('./modules/admin/admin.routes'));
+app.use('/api/v1/payments', require('./modules/payments/payments.routes'));
+app.use('/api/v1/admin',    require('./modules/admin/admin.routes'));
 
 // ─── 404 HANDLER ─────────────────────────────────────────────────────────────
 // Catches any request that didn't match a route above.

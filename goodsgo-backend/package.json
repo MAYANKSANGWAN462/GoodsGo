@@ -1,7 +1,7 @@
 {
   "name": "goodsgo-backend",
   "version": "1.0.0",
-  "description": "GoodsGo logistics marketplace \u2014 backend API server",
+  "description": "GoodsGo logistics marketplace — backend API server",
   "main": "server.js",
   "engines": {
     "node": ">=20.0.0"
@@ -33,6 +33,7 @@
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.15",
     "pg": "^8.11.5",
+    "razorpay": "^2.9.6",
     "socket.io": "^4.7.5",
     "uuid": "^9.0.1"
   },

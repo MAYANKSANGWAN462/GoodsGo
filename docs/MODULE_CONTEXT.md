@@ -1,158 +1,75 @@
 # GoodsGo — Module Context
-> **Active block:** Block N — Payments | Replace this file entirely when Block N is complete.
+> **Active status:** Backend MVP complete — all planned backend modules implemented through Block O.  
+> Replace this file when beginning the next development phase.
 
 ---
 
-## Current Module
-- **Module:** Payments
-- **Block:** N — follows Block M (Reviews Module)
-- **Goal:** Razorpay escrow-style payment integration. After a booking is `accepted`, the requester pays via Razorpay (within `payment_deadline_hours`). The platform holds the funds. On booking `completed`, funds are released to the post owner after the `payment_auto_release_days` grace period (or earlier by manual trigger). Platform commission is deducted before release.
+## Backend Status
 
----
+All planned backend modules are complete. The implementation sequence was:
 
-## Pre-conditions (must be resolved before starting)
-- **`razorpay` npm package is NOT installed** — run `npm install razorpay@^2.9.4` first ⚠
-- migration 013 (`payments` table with full Razorpay gateway fields + escrow timing columns) ✓
-- `PAYMENT_STATUS` constant exists in `constants.js` ✓
-- `NOTIFICATION_TYPES.PAYMENT_RECEIVED` and `NOTIFICATION_TYPES.PAYMENT_RELEASED` exist ✓
-- `PLATFORM_SETTINGS.PAYMENT_DEADLINE_HOURS` and `PLATFORM_SETTINGS.PAYMENT_AUTO_RELEASE_DAYS` exist ✓
-- `bookings.service.js` already writes `payment_deadline` (on accept) and `auto_release_at` (on complete) ✓
-- `app.js` has a `// BLOCK N:` placeholder comment ✓
+`A → B → C → D → E → F → H → K → I → J → L → M → N → O`
 
----
-
-## Module Dependencies
-- **Reads from:** `payments`, `bookings`, `users`, `platform_settings`
-- **Writes to:** `payments`, `bookings` (status transitions on payment timeout/release)
-- **Uses:** `config/database.js` (`query()`, `getClient()`), `utils/constants.js` (`PAYMENT_STATUS`, `BOOKING_STATUS`, `NOTIFICATION_TYPES`, `PLATFORM_SETTINGS`), `utils/ApiError.js`, `razorpay` SDK
-- **Notifies:** `notifications.service.createNotification()` — lazy-require pattern for `PAYMENT_RECEIVED` and `PAYMENT_RELEASED` types
-- **Middleware chain:** webhook route uses raw body parsing (signature verification requires the raw body buffer, not the parsed JSON); all other routes use `authenticate` + `validate(schema)` + controller
-
----
-
-## Files to Create
-
-| File | Role | Notes |
+| Block | Module | Status |
 |---|---|---|
-| `src/modules/payments/payments.validator.js` | Joi validation schemas | 3 schemas (see below) |
-| `src/modules/payments/payments.service.js` | Business logic + DB queries + Razorpay SDK calls | 5 exported functions |
-| `src/modules/payments/payments.controller.js` | Thin asyncHandler handlers | One handler per service function |
-| `src/modules/payments/payments.routes.js` | Express router | 3 routes; mounted in `app.js` |
+| A | Core utilities & infrastructure | Complete |
+| B | Config layer | Complete |
+| C | Middleware stack | Complete |
+| D | Database migrations (001–018) + seeds | Complete |
+| E | Auth | Complete |
+| F | Users | Complete |
+| H | Location, Posts, Config routes, Cron job | Complete |
+| K | Bookings | Complete |
+| I | Notifications | Complete |
+| J | Socket handlers | Complete |
+| L | Chat REST API | Complete |
+| M | Reviews | Complete |
+| N | Payments (Razorpay) | Complete |
+| O | Admin | Complete — migrations 019/020 added |
 
 ---
 
-## Files to Modify
+## Recommended Next Phase
 
-| File | Change |
-|---|---|
-| `src/app.js` | Replace `// BLOCK N:` placeholder with `app.use('/api/v1/payments', require('./modules/payments/payments.routes'))` |
+### Option A — Frontend Integration (highest product value)
 
-Note: no `users.routes.js` change needed for Block N — payment history is accessible through `GET /api/v1/payments` filtered by user, not a `/me/*` sub-resource.
+The backend API is now complete and stable. All endpoints documented in `docs/PROJECT_CONTEXT.md` Section 11 are live.
 
----
+**Frontend tech stack (planned):** React 18 + Vite, React Router v6, Tailwind CSS, Axios, Zustand, TanStack React Query, React Hook Form + Yup, Leaflet/react-leaflet, Socket.io-client, PropTypes.
 
-## API Endpoints
+**Starting point:** `goodsgo-frontend/` (Vite+React scaffold exists).
 
-| Method | Path | Auth | Notes |
-|---|---|---|---|
-| `POST` | `/api/v1/payments/initiate` | `authenticate` | Creates a Razorpay order for a booking; body: `{ bookingId }` |
-| `POST` | `/api/v1/payments/verify` | `authenticate` | Verifies Razorpay payment signature; body: `{ orderId, paymentId, signature }` |
-| `POST` | `/api/v1/payments/webhook` | None (HMAC-verified) | Razorpay webhook receiver — must parse raw body before JSON parsing for signature verification |
+**Key integration notes:**
+- Backend response envelope: `{ success, message, data?, meta?, errors?, code? }` — wrap in a single Axios interceptor.
+- Access token: hold in memory (Zustand), never localStorage.
+- Refresh token: httpOnly cookie; Axios must use `withCredentials: true`.
+- Reference data (vehicle types, goods categories): fetch from `GET /api/v1/config/options` at startup.
+- Admin panel: separate login flow using admin JWT (`JWT_ADMIN_SECRET`); never mix with user token storage.
 
----
+### Option B — Production Deployment
 
-## Service Functions to Export
+**Pre-conditions:**
+1. `npm install` in `goodsgo-backend/` to install `razorpay@^2.9.4`.
+2. Provision a Neon.tech Postgres instance.
+3. Run `npm run migrate` to apply all 20 migrations.
+4. Run all 4 seed scripts (`npm run seed:admin`, `npm run seed:vehicle-types`, `npm run seed:goods-categories`, `npm run seed:platform-settings`).
+5. Configure `.env` with all required variables (DATABASE_URL, JWT_SECRET, JWT_REFRESH_SECRET, JWT_ADMIN_SECRET, Cloudinary credentials, email SMTP credentials, RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, RAZORPAY_WEBHOOK_SECRET, ADMIN_EMAIL, ADMIN_PASSWORD, ADMIN_FULL_NAME).
+6. Deploy to Render/Railway.
 
-### `initiatePayment(bookingId, payerId)`
-- Fetch booking — throw 404 if not found.
-- Verify `payerId === booking.requester_id` — only the requester pays.
-- Verify `booking.status === BOOKING_STATUS.ACCEPTED` — throw 422 if not (`PAYMENT_NOT_ALLOWED` code).
-- Verify `booking.payment_deadline` has not passed — throw 422 if expired (`PAYMENT_DEADLINE_EXPIRED`).
-- Check for existing non-failed payment row — throw 409 if already paid (`PAYMENT_ALREADY_INITIATED`).
-- Call `razorpay.orders.create({ amount: agreedPrice * 100 (paise), currency: 'INR', receipt: bookingId })`.
-- INSERT into `payments` with `status = 'pending'`, `gateway_order_id`, amount fields from booking.
-- Return `{ orderId, amount, currency, key: RAZORPAY_KEY_ID }` — the frontend uses these to open the Razorpay checkout widget.
+### Option C — KYC / Identity Verification (deferred feature)
 
-### `verifyPayment(bookingId, orderId, paymentId, signature, payerId)`
-- Fetch payment row by `gateway_order_id = orderId` — throw 404 if not found.
-- Verify `payerId === payment.payer_id` — throw 403 if not.
-- Verify payment is still `pending` — throw 409 if already `completed`.
-- Compute HMAC-SHA256 of `${orderId}|${paymentId}` using `RAZORPAY_KEY_SECRET` — compare to `signature` (constant-time comparison via `crypto.timingSafeEqual`).
-- If signature mismatch → throw `ApiError.badRequest('Payment signature verification failed.', 'PAYMENT_SIGNATURE_INVALID')`.
-- Transactional (`getClient()`):
-  - UPDATE `payments` SET `status = 'completed'`, `gateway_payment_id`, `gateway_signature`.
-  - Optionally: fetch Razorpay payment details via `razorpay.payments.fetch(paymentId)` and store raw response in `gateway_response` JSONB.
-  - COMMIT.
-- Notify payer (`PAYMENT_RECEIVED` — "Your payment was received successfully.").
-- Return formatted payment row.
+**What exists:** `uploadImage.js` has `uploadIdentityDocument()` and `generateSignedUrl()` helpers; `CLOUDINARY_FOLDERS.KYC` constant exists; `users.is_identity_verified` column exists.
 
-### `handleWebhook(rawBody, signature)`
-- Verify webhook signature using `razorpay.webhooks.validateWebhookSignature(rawBody, signature, RAZORPAY_WEBHOOK_SECRET)`.
-- Parse `rawBody` as JSON — extract `event` and `payload`.
-- Route by event:
-  - `payment.captured` → call `verifyPayment()` with the gateway data.
-  - `payment.failed` → UPDATE `payments` SET `status = 'failed'`.
-  - `refund.processed` → UPDATE `payments` SET `status = 'refunded'`, `refund_amount`, `gateway_refund_id`, `refunded_at`.
-- All errors logged, never re-thrown — webhook must always return 200 to Razorpay.
-
-### `releasePayment(bookingId, releasedBy)`
-- Fetch booking and payment — throw 404 if not found.
-- Verify `booking.status === BOOKING_STATUS.COMPLETED` — throw 422 if not.
-- Verify payment `status === 'completed'` — throw 422 if not yet paid.
-- Razorpay does not natively "release" escrowed funds — this function records the release in the DB and initiates any necessary transfer (if using Razorpay Route for transporter payouts, integrate here; otherwise, record release for manual bank transfer).
-- UPDATE `payments` SET `status = 'released'` (or keep as 'completed' and add a `released_at` timestamp — decide based on `payments` table schema).
-- Notify payee (`PAYMENT_RELEASED` — "Your payment has been released.").
-- Return updated payment.
-
-### `refundPayment(bookingId, amount, reason, adminId)`
-- Admin-only function (called by Block O admin routes, not a public endpoint in Block N).
-- Fetch payment row — throw 404 if not found.
-- Verify `payment.status === 'completed'` — only completed payments can be refunded.
-- Call `razorpay.payments.refund(gateway_payment_id, { amount: amount * 100 })`.
-- UPDATE `payments` SET `status = 'refunded'` (or `'partially_refunded'` if `amount < payment.amount`), `refund_amount`, `refund_reason`, `refunded_at`, `gateway_refund_id`.
-- Return updated payment.
+**What is needed:** A new migration (021_create_identity_documents.sql), a full four-file module (`identity.validator.js`, `identity.service.js`, `identity.controller.js`, `identity.routes.js`), and admin approval workflow wired into the existing admin module.
 
 ---
 
-## Validation Schemas
+## Known Open Issues (carry-forward)
 
-```js
-// payments.validator.js
-
-const initiatePaymentSchema = Joi.object({
-  bookingId: Joi.string().uuid({ version: 'uuidv4' }).required()
-});
-
-const verifyPaymentSchema = Joi.object({
-  bookingId:  Joi.string().uuid({ version: 'uuidv4' }).required(),
-  orderId:    Joi.string().required(),
-  paymentId:  Joi.string().required(),
-  signature:  Joi.string().required()
-});
-
-// Webhook has no Joi schema — body validation is done via Razorpay HMAC
-// (Joi cannot validate the raw buffer required for signature verification)
-```
-
----
-
-## Architecture Alignment Notes
-
-- **Webhook raw-body requirement:** Razorpay's webhook signature verification requires the exact raw request body bytes. Express's `express.json()` middleware consumes and parses the buffer — by the time a normal route handler sees `req.body`, it is already a parsed JS object and the raw buffer is gone. To solve this for the webhook route **only**, use `express.raw({ type: 'application/json' })` as middleware specifically on the webhook route (declared before the route in `payments.routes.js`), which preserves `req.body` as a `Buffer`. This is the standard Stripe/Razorpay webhook pattern.
-- **No `users.routes.js` modification needed:** Payment history retrieval (if needed) can be implemented as `GET /api/v1/payments?bookingId=...` or as a controller handler returning the payment row for a booking — no sub-resource mount under `/me/*` is planned for Block N.
-- **`releasePayment` and `refundPayment` are for Block O/admin routes.** Export them from `payments.service.js` now so Block O can import them without modifying the service file. The Block N routes (`/initiate`, `/verify`, `/webhook`) are the only public-facing endpoints.
-- **`RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` must be in `.env`** — they are already in `.env.example`. The Razorpay client is initialized once at module load in `payments.service.js` (not per-request) using `new Razorpay({ key_id, key_secret })`.
-- **Signature verification uses `crypto.timingSafeEqual`** — standard timing-attack mitigation for HMAC comparisons. Do not use `===` or `Buffer.equals()` for security-critical signature checks.
-- **getPlatformSetting pattern:** Follow the existing pattern from `posts.service.js` and `bookings.service.js` — define a local `getPlatformSetting(key, defaultValue)` at the top of `payments.service.js`.
-- **Rate limiting:** `POST /payments/initiate` should get a dedicated limiter (e.g. 10 initiations per hour per user, user-ID-keyed) — add it to `rateLimiter.middleware.js` following the `postCreateLimiter`/`bookingLimiter` pattern.
-
----
-
-## Post-Block-N Checklist (replace this file with Block O brief when done)
-- [ ] `payments.validator.js`, `payments.service.js`, `payments.controller.js`, `payments.routes.js` written and syntax-validated
-- [ ] `razorpay` npm package installed
-- [ ] `app.js` updated — `// BLOCK N:` placeholder replaced with live mount
-- [ ] `rateLimiter.middleware.js` updated — payment initiation limiter added
-- [ ] `PROJECT_CONTEXT.md` Section 6 (folder structure), Section 3.7 (Payments — moved from Pending to Complete), Section 11 (API — new payment endpoints), Section 12 (Services) updated
-- [ ] `CURRENT_STATE.md` updated: Block N in completed list, Block O as next
-- [ ] This file replaced with Block O brief
+| Priority | Issue | Notes |
+|---|---|---|
+| 🟠 P1 | `razorpay` npm package not yet installed | Run `npm install` in `goodsgo-backend/` |
+| 🟡 P2 | `ADMIN_EMAIL`/`ADMIN_PASSWORD`/`ADMIN_FULL_NAME` not in `.env.example` | `seed_admin.js` has hardcoded insecure fallbacks |
+| 🟡 P2 | `logAdminAction` target_id null for `:reportId` and `:disputeId` routes | Minor audit log limitation; action_type + target_type still traceable |
+| 🟡 P3 | No automated test suite | All validation has been syntactic only; no integration tests against a live DB |
+| 🟡 P3 | `getSetting`/`getPlatformSetting` helper duplicated in posts.service and bookings.service | Documented technical debt; consolidate when convenient |

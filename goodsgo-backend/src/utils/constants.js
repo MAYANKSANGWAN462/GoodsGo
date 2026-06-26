@@ -311,6 +311,10 @@ const RATE_LIMITS = Object.freeze({
   CHAT_MESSAGE: {
     WINDOW_MS: 60 * 1000,       // 1 minute
     MAX: 60                     // 60 messages per minute per user
+  },
+  PAYMENT_INITIATE: {
+    WINDOW_MS: 60 * 60 * 1000, // 1 hour
+    MAX: 10                     // 10 payment initiations per hour per user
   }
 });
 
