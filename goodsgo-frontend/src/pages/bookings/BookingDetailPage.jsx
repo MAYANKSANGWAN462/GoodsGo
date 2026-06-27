@@ -1,8 +1,12 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import useAuthStore from '../../stores/useAuthStore';
 import { useBooking, useBookingHistory } from '../../hooks/useBookings';
+import { useBookingReviews, useDeleteReview } from '../../hooks/useReviews';
 import BookingStatusBadge from '../../components/bookings/BookingStatusBadge';
 import BookingActionButtons from '../../components/bookings/BookingActionButtons';
+import ReviewCard from '../../components/reviews/ReviewCard';
+import ReviewForm from '../../components/reviews/ReviewForm';
 import Avatar from '../../components/common/Avatar';
 import Spinner from '../../components/common/Spinner';
 import Button from '../../components/common/Button';
@@ -13,9 +17,13 @@ export default function BookingDetailPage() {
   const { id: bookingId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const [deletingReviewId, setDeletingReviewId] = useState(null);
 
+  // All hooks must be called before any conditional returns
   const { data: booking, isLoading, isError } = useBooking(bookingId);
   const { data: history, isLoading: historyLoading } = useBookingHistory(bookingId);
+  const { data: bookingReviewsData, isLoading: bookingReviewsLoading } = useBookingReviews(bookingId);
+  const { mutate: deleteReview } = useDeleteReview();
 
   if (isLoading) {
     return (
@@ -43,8 +51,22 @@ export default function BookingDetailPage() {
   const counterparty = isOwner ? booking.requester : booking.postOwner;
   const counterpartyLabel = isOwner ? 'Requester' : 'Post Owner';
 
+  // Derive review context from booking parties
+  const reviewRole = isOwner ? 'as_transporter' : 'as_customer';
+  const revieweeId = isOwner ? booking.requester?.id : booking.postOwner?.id;
+  const bookingReviews = bookingReviewsData?.data ?? [];
+  const currentUserHasReviewed =
+    Boolean(user) && bookingReviews.some((r) => r.reviewer?.id === user.id);
+
   const routeLabel =
     [booking.post?.originCity, booking.post?.destinationCity].filter(Boolean).join(' → ') || '—';
+
+  function handleDeleteReview(reviewId) {
+    setDeletingReviewId(reviewId);
+    deleteReview(reviewId, {
+      onSettled: () => setDeletingReviewId(null),
+    });
+  }
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -148,11 +170,52 @@ export default function BookingDetailPage() {
             )}
           </div>
 
-          {/* Reviews stub — implemented in FE-9 */}
+          {/* Reviews section — shown only for completed bookings */}
           {booking.status === 'completed' && (
             <div className="bg-surface rounded-xl border border-border p-5">
-              <h2 className="font-semibold text-text text-sm mb-2">Reviews</h2>
-              <p className="text-sm text-text-muted">Reviews — available in a future update.</p>
+              <h2 className="font-semibold text-text text-sm mb-4">Reviews</h2>
+
+              {bookingReviewsLoading ? (
+                <div className="flex justify-center py-4">
+                  <Spinner size="sm" />
+                </div>
+              ) : (
+                <>
+                  {/* Existing reviews for this booking */}
+                  {bookingReviews.length > 0 && (
+                    <div className="border border-border rounded-xl overflow-hidden mb-4">
+                      {bookingReviews.map((review) => (
+                        <ReviewCard
+                          key={review.id}
+                          review={review}
+                          showRoleBadge
+                          onDelete={handleDeleteReview}
+                          isDeleting={deletingReviewId === review.id}
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  {currentUserHasReviewed ? (
+                    /* Current user has already reviewed — show waiting message if partner hasn't */
+                    bookingReviews.length < 2 && (
+                      <p className="text-sm text-text-muted italic">
+                        Waiting for the other party to leave a review.
+                      </p>
+                    )
+                  ) : (
+                    /* Current user hasn't reviewed yet — show the form */
+                    <div className={bookingReviews.length > 0 ? 'pt-4 border-t border-border' : ''}>
+                      <p className="text-sm font-medium text-text mb-3">Leave a Review</p>
+                      <ReviewForm
+                        bookingId={bookingId}
+                        revieweeId={revieweeId}
+                        reviewRole={reviewRole}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           )}
 

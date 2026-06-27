@@ -16,7 +16,7 @@ const KEYFRAMES = `
  * @param {string} props.subhead     - Subheading text when showHeadline is true.
  */
 export default function HeroBackground({
-  truckCount = 2,
+  truckCount = 3,
   accent = '#f2b53d',
   showHeadline = false,
   headline = 'Moving India forward',

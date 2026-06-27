@@ -1,12 +1,15 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #f97316;
-  --color-primary-dark: #ea580c;
+  /* Brand: Go Red (#D31905) · Freight Blue (#003082) */
+  --color-primary: #D31905;
+  --color-primary-dark: #a81404;
+  --color-secondary: #003082;
+  --color-secondary-dark: #002260;
   --color-surface: #ffffff;
   --color-surface-alt: #f9fafb;
   --color-border: #e5e7eb;
-  --color-text: #111827;
+  --color-text: #16130F;
   --color-text-muted: #6b7280;
   --color-danger: #ef4444;
   --color-success: #22c55e;
@@ -19,8 +22,8 @@
 
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: 'Barlow', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background-color: #f9fafb;
-  color: #111827;
+  color: #16130F;
   -webkit-font-smoothing: antialiased;
 }

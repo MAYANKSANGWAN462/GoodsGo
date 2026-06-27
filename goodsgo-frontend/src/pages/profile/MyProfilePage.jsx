@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMe } from '../../hooks/useUsers';
 import { useMyPosts } from '../../hooks/usePosts';
+import { useMyReviews } from '../../hooks/useReviews';
 import ProfileHeader from '../../components/profile/ProfileHeader';
 import ProfileStats from '../../components/profile/ProfileStats';
 import PostList from '../../components/posts/PostList';
-import EmptyState from '../../components/common/EmptyState';
+import ReviewList from '../../components/reviews/ReviewList';
 import Spinner from '../../components/common/Spinner';
 import { ROUTES } from '../../constants/routes';
 
@@ -22,6 +23,7 @@ export default function MyProfilePage() {
     page: postsPage,
     limit: POSTS_PER_PAGE,
   });
+  const { data: myReviewsData, isLoading: myReviewsLoading } = useMyReviews();
 
   if (isLoading) {
     return (
@@ -41,6 +43,8 @@ export default function MyProfilePage() {
 
   const posts = postsData?.data ?? [];
   const postsMeta = postsData?.meta ?? null;
+  const myReviews = myReviewsData?.data ?? [];
+  const myReviewsMeta = myReviewsData?.meta ?? null;
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
@@ -100,12 +104,18 @@ export default function MyProfilePage() {
         />
       )}
 
-      {/* Tab: Reviews — placeholder until FE-9 */}
+      {/* Tab: Reviews I have written */}
       {activeTab === 'Reviews' && (
-        <EmptyState
-          icon={<span className="text-4xl">⭐</span>}
-          title="No reviews yet"
-          message="Reviews from completed bookings will appear here."
+        <ReviewList
+          reviews={myReviews}
+          isLoading={myReviewsLoading}
+          meta={myReviewsMeta}
+          currentPage={1}
+          onPageChange={() => {}}
+          showRoleBadge
+          allowDelete
+          emptyTitle="No reviews yet"
+          emptyMessage="You haven't written any reviews yet. Reviews appear here after completing a booking."
         />
       )}
     </div>

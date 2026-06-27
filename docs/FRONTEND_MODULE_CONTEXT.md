@@ -1,43 +1,41 @@
 # GoodsGo — Frontend Module Context
 
 > **Purpose:** Active implementation brief. Regenerate this file completely after every completed frontend module.
-> **Current block:** FE-9 — Reviews (Create Review + Review Lists)
+> **Current block:** FE-10 — Payments (Razorpay Initiate + Verify)
 > **Status:** Not started
 > **Max size:** 150 lines. This constraint is intentional — keep it tight.
 
 ---
 
-## Current Block: FE-9 — Reviews (Create Review + Review Lists)
+## Current Block: FE-10 — Payments (Razorpay Initiate + Verify)
 
 ### Module Goal
-Implement the review creation flow (on BookingDetailPage after a booking is `completed`) and the review display components used by PublicProfilePage and MyProfilePage. Also wire the inline `ReviewCard` in `PublicProfilePage` into the proper shared component.
+Implement the Razorpay payment flow on BookingDetailPage (replace the "Payment — available in a future update" stub) and build PaymentHistoryPage. The frontend calls `POST /payments/initiate` to get a Razorpay order, opens the Razorpay checkout modal client-side, then calls `POST /payments/verify` with the payment result.
 
-### Why this block ninth
-Profile (FE-8) established `useReviews.js` (useUserReviews, useMyReviews, useDeleteReview) and `reviews.service.js`. FE-9 adds `createReview` to the service and `useCreateReview` to the hook, then builds the display and form components.
+### Why this block tenth
+The BookingDetailPage payment stub has existed since FE-5. Reviews (FE-9) are now wired. Payments are the last major transactional feature before the admin panel.
 
 ---
 
 ### Files to Implement (exist as stubs — replace now)
 ```
-src/components/reviews/ReviewCard.jsx    ← Single review: StarRating, comment, reviewer avatar+name,
-                                            date, role badge (as_customer / as_transporter),
-                                            optional delete button (own review, within edit window)
-src/components/reviews/ReviewList.jsx    ← Array of ReviewCard + Pagination
-src/components/reviews/ReviewForm.jsx    ← Create review form: StarRating (interactive) + comment
-                                            + reviewRole select; shown on BookingDetailPage when
-                                            booking is 'completed' and user hasn't reviewed yet
+src/pages/payments/PaymentHistoryPage.jsx  ← Payment history list + initiate button per booking
+```
+
+### Files to Create (new — not in scaffold)
+```
+src/hooks/usePayments.js   ← useInitiatePayment(), useVerifyPayment()
 ```
 
 ### Files to Modify (targeted changes only)
 ```
-src/services/reviews.service.js  ← Add createReview(body)
-src/hooks/useReviews.js          ← Add useCreateReview(); add useBookingReviews(bookingId)
-src/pages/profile/PublicProfilePage.jsx  ← Replace inline ReviewCard with imported ReviewCard;
-                                            replace inline review list with ReviewList component
-src/pages/profile/MyProfilePage.jsx      ← Replace Reviews tab EmptyState with ReviewList
-                                            (using useMyReviews, not paginated by userId)
-src/pages/bookings/BookingDetailPage.jsx ← Add ReviewForm section after booking.status === 'completed';
-                                            add useBookingReviews to show existing reviews
+src/services/payments.service.js          ← Implement initiatePayment(bookingId) and
+                                             verifyPayment(body) — currently a stub
+src/pages/bookings/BookingDetailPage.jsx  ← Replace payment stub with real PaymentSection:
+                                             show payment status, initiate button, and
+                                             verify callback via Razorpay modal
+src/App.jsx                               ← Replace PlaceholderPage for /payments with
+                                             real PaymentHistoryPage import
 ```
 
 ---
@@ -45,52 +43,52 @@ src/pages/bookings/BookingDetailPage.jsx ← Add ReviewForm section after bookin
 ### Backend APIs Required
 | Endpoint | Service fn | Notes |
 |---|---|---|
-| `POST /reviews` | `createReview` | `{ bookingId, rating, comment, reviewRole: 'as_customer'\|'as_transporter' }` |
-| `GET /reviews/bookings/:bookingId` | `getBookingReviews` (new) | query key `['booking-reviews', bookingId]` |
-| `GET /reviews/users/:userId` | `getUserReviews` (exists) | already implemented |
-| `GET /users/me/reviews` | `getMyReviews` (exists) | already implemented |
-| `DELETE /reviews/:reviewId` | `deleteReview` (exists) | already implemented |
+| `POST /payments/initiate` | `initiatePayment(bookingId)` | Returns `{ orderId, amount, currency, key, paymentRowId }` |
+| `POST /payments/verify` | `verifyPayment({ bookingId, orderId, paymentId, signature })` | Called inside Razorpay `handler` callback |
+
+### Razorpay Integration Notes
+- Load the Razorpay script dynamically at checkout time (not at app startup):
+  ```js
+  const script = document.createElement('script');
+  script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+  document.body.appendChild(script);
+  ```
+- Call `new window.Razorpay({ key, amount, currency, order_id, handler: fn }).open()` after script loads.
+- The `handler` callback receives `{ razorpay_payment_id, razorpay_order_id, razorpay_signature }` — call `verifyPayment` inside it.
+- Do NOT install the `razorpay` npm package on the frontend — that is backend-only. The frontend uses only the CDN script.
+- `amount` from the backend is in paise (smallest currency unit). Display in rupees: `amount / 100`.
 
 ### Component Relationships
 ```
-BookingDetailPage (completed booking)
-  └── ReviewForm (shown if no review yet from current user)
-        ├── StarRating (interactive, size='lg')
-        └── Textarea (comment)
+BookingDetailPage (accepted booking, payment not yet done)
+  └── PaymentSection (inline, not a separate component file needed)
+        ├── "Pay Now" Button → initiatePayment mutation → opens Razorpay modal
+        └── On Razorpay success → verifyPayment mutation → invalidate ['booking', bookingId]
 
-PublicProfilePage
-  └── ReviewList
-        └── ReviewCard (read-only)
-
-MyProfilePage (Reviews tab)
-  └── ReviewList (reviews I wrote, via useMyReviews)
-        └── ReviewCard (with delete button if within edit window)
+PaymentHistoryPage
+  └── List of booking payments for current user (if backend supports GET /payments)
+      If no dedicated list endpoint exists: show a placeholder or link to bookings
 ```
 
 ### Design Notes
-- `ReviewForm` uses React Hook Form + Yup. Schema: rating (number, 1–5, required), comment (string, 10–1000 chars, required), reviewRole (enum, required).
-- `reviewRole` should be pre-determined based on user's role in the booking (requester → 'as_customer'; post owner → 'as_transporter'). Pass it as a hidden field or derive it in the hook.
-- `ReviewCard`: show role badge only when the context is "reviews I wrote" (MyProfilePage). On PublicProfilePage, omit the role badge.
-- On success of `createReview`: invalidate `['booking-reviews', bookingId]` and `['public-profile', revieweeId]`. The `revieweeId` is the other party in the booking.
-- Delete button on ReviewCard: only for own reviews (`review.reviewerId === me.id`) and only if `review.isEditable` (or within edit window). Backend enforces; front end hides the button when not applicable.
+- Payment is only available when `booking.status === 'accepted'` and no successful payment exists yet.
+- After `verifyPayment` succeeds, invalidate `['booking', bookingId]` so the booking status updates.
+- Show `isLoading` on the "Pay Now" button while `initiatePayment` is pending.
+- If `initiatePayment` fails (e.g. booking not accepted), show `toast.error`.
+- `PaymentHistoryPage`: Check if `GET /api/v1/payments` or a sub-route exists in the backend. If no payment list endpoint is available, show a message directing users to their Bookings page. Verify in `docs/PROJECT_CONTEXT.md` Section 11 before building.
 
 ### Testing Checklist (manual, human-executed)
-- [ ] BookingDetailPage shows ReviewForm only when booking.status === 'completed'
-- [ ] Submitting ReviewForm with rating 1–5, comment, and role creates a review; form disappears on success
-- [ ] Rating below 1 or above 5 shows inline validation error
-- [ ] Comment shorter than 10 characters shows inline validation error
-- [ ] Submitting twice shows `REVIEW_ALREADY_EXISTS` toast error
-- [ ] PublicProfilePage shows real ReviewList (not the inline component from FE-8)
-- [ ] MyProfilePage Reviews tab shows list of reviews I've written with delete buttons
-- [ ] Delete review within edit window works; outside window shows API error toast
+- [ ] BookingDetailPage shows payment section only when booking.status === 'accepted'
+- [ ] Clicking "Pay Now" calls initiate, opens Razorpay modal with correct amount
+- [ ] Completing payment in Razorpay modal calls verify; booking status updates on success
+- [ ] Failing payment (dismiss modal) does not call verify and shows no error state
+- [ ] PaymentHistoryPage loads without errors (even if empty)
 - [ ] No token in localStorage or sessionStorage throughout the flow
 
 ---
 
 ### Notes for This Block
-- `src/components/reviews/ReviewCard.jsx` stub exists — read before writing.
-- `src/components/reviews/ReviewList.jsx` stub exists — read before writing.
-- `src/components/reviews/ReviewForm.jsx` stub exists — read before writing.
-- The inline `ReviewCard` in `PublicProfilePage.jsx` should be removed and replaced with the shared component.
-- `MyProfilePage` Reviews tab currently shows `<EmptyState>` — replace with `<ReviewList>` using `useMyReviews()`.
-- Check `BookingDetailPage.jsx` before editing — understand its current structure (stub sections for payment and reviews) before adding `ReviewForm`.
+- Check `src/services/payments.service.js` before writing — it may already have stubs.
+- Verify if `GET /payments` or `GET /users/me/payments` endpoint exists in backend (PROJECT_CONTEXT.md Section 11) before building the history list.
+- `src/App.jsx` currently has a PlaceholderPage or redirect for `/payments` — replace with the real PaymentHistoryPage.
+- The payment section in BookingDetailPage currently reads "Payment — available in a future update." — replace the entire stub block.

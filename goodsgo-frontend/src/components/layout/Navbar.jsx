@@ -5,6 +5,7 @@ import { ROUTES } from '../../constants/routes';
 import useAuth from '../../hooks/useAuth';
 import Avatar from '../common/Avatar';
 import Button from '../common/Button';
+import GoodsGoLogo from '../common/GoodsGoLogo';
 import NotificationBell from '../notifications/NotificationBell';
 
 const DESKTOP_NAV_LINKS = [
@@ -68,15 +69,21 @@ export default function Navbar({ onMenuToggle }) {
       {/* Logo */}
       <Link
         to={ROUTES.HOME}
-        className="font-bold text-primary text-lg flex items-center gap-2 flex-shrink-0"
+        className="flex items-center gap-2 flex-shrink-0"
+        aria-label="GoodsGo home"
       >
-        <img
-          src="/GOODS_GO.png"
-          alt=""
-          className="h-7 w-7 object-contain"
-          onError={(e) => { e.currentTarget.style.display = 'none'; }}
-        />
-        GoodsGo
+        <GoodsGoLogo size={32} animated={false} />
+        <span
+          style={{
+            fontFamily: "'Barlow Semi Condensed', sans-serif",
+            fontWeight: 700,
+            fontSize: '18px',
+            letterSpacing: '0.02em',
+            color: '#003082',
+          }}
+        >
+          GOODS<span style={{ color: '#D31905' }}>GO</span>
+        </span>
       </Link>
 
       {/* Desktop nav links */}

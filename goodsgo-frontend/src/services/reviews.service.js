@@ -1,6 +1,26 @@
 import { api, unwrapResponse } from './api';
 
 /**
+ * Create a review for a completed booking.
+ * @param {{ bookingId: string, rating: number, comment: string, reviewRole: 'as_customer'|'as_transporter' }} body
+ * @returns {Promise<{ data: object, meta: null }>}
+ */
+export async function createReview(body) {
+  const res = await api.post('/reviews', body);
+  return unwrapResponse(res);
+}
+
+/**
+ * Fetch reviews for a specific booking (both parties' reviews).
+ * @param {string} bookingId
+ * @returns {Promise<{ data: Array, meta: object }>}
+ */
+export async function getBookingReviews(bookingId) {
+  const res = await api.get(`/reviews/bookings/${bookingId}`);
+  return unwrapResponse(res);
+}
+
+/**
  * Fetch paginated reviews for a specific user (as reviewee).
  * @param {string} userId
  * @param {{ page?: number, limit?: number }} [filters]

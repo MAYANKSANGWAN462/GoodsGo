@@ -4,6 +4,7 @@ import Button from '../components/common/Button';
 import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
 import HeroBackground from '../components/home/HeroBackground';
+import GoodsGoLogo from '../components/common/GoodsGoLogo';
 import useAuth from '../hooks/useAuth';
 
 const FEATURES = [
@@ -126,27 +127,22 @@ export default function HomePage() {
             zIndex: 10,
           }}
         >
-          <img
-            src="/GOODS_GO.png"
-            alt="GoodsGo"
-            style={{ height: '64px', width: '64px', objectFit: 'contain', marginBottom: '20px' }}
-            onError={(e) => { e.currentTarget.style.display = 'none'; }}
-          />
+          <GoodsGoLogo size={72} animated />
           <h1
             style={{
               fontFamily: "'Space Grotesk', sans-serif",
               fontWeight: 700,
               fontSize: 'clamp(32px, 5vw, 72px)',
               lineHeight: 1.04,
-              color: '#2a2620',
+              color: '#16130F',
               letterSpacing: '-0.5px',
               textShadow: '0 2px 18px rgba(255,244,220,0.6)',
               maxWidth: '14ch',
-              margin: 0,
+              margin: '20px 0 0',
             }}
           >
             Move goods.{' '}
-            <span style={{ color: '#c47b1a' }}>Find transport.</span>
+            <span style={{ color: '#D31905' }}>Find transport.</span>
           </h1>
           <p
             style={{
@@ -228,7 +224,7 @@ export default function HomePage() {
             <h2 className="text-3xl font-bold mb-4">
               Ready to get moving?
             </h2>
-            <p className="text-orange-100 text-lg mb-8 max-w-xl mx-auto leading-relaxed">
+            <p className="text-red-100 text-lg mb-8 max-w-xl mx-auto leading-relaxed">
               Join GoodsGo today — create a free account and start posting or browsing transport
               opportunities across India.
             </p>
