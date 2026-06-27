@@ -28,15 +28,15 @@ The scaffold at `goodsgo-frontend/` has **different versions from the plan** in 
 | React | 18 | **19.1.1** | Production-stable. Practical SPA differences minimal. |
 | React Router DOM | v6 | **v7.9.3** | Breaking API differences — see Section 5. |
 | Tailwind CSS | v3 + PostCSS | **v4.1.14 via `@tailwindcss/vite`** | CSS-first config — see Section 9. |
-| Axios | Planned | **Not installed** | `npm install axios` before any API call. |
-| Zustand | Planned | **Not installed** | `npm install zustand` before auth module. |
-| TanStack React Query | Planned | **Not installed** | `npm install @tanstack/react-query` before auth module. |
-| React Hook Form + Yup | Planned | **Not installed** | `npm install react-hook-form yup @hookform/resolvers` before any form. |
+| Axios | Planned | **^1.18.1** | Installed in FE-1. |
+| Zustand | Planned | **^5.0.14** | Installed in FE-1. |
+| TanStack React Query | Planned | **^5.101.1** | Installed in FE-1. |
+| React Hook Form + Yup | Planned | **^7.80.0 / ^1.7.1** | Installed in FE-1. |
 | Leaflet + react-leaflet | Planned | **Not installed** | `npm install leaflet react-leaflet` before location module. |
-| Socket.io-client | Planned | **Not installed** | `npm install socket.io-client` before chat/notification module. |
-| react-hot-toast | Planned | **Not installed** | `npm install react-hot-toast` before any mutation feedback. |
-| PropTypes | Planned | **Not installed** | `npm install prop-types` before first component. |
-| date-fns | Planned | **Not installed** | `npm install date-fns` before first date display. |
+| Socket.io-client | Planned | **^4.x (installed FE-6)** | Installed in FE-6. Connection managed by useSocket/SocketContext. |
+| react-hot-toast | Planned | **^2.6.0** | Installed in FE-1. |
+| PropTypes | Planned | **^15.8.1** | Installed in FE-1. |
+| date-fns | Planned | **^4.4.0** | Installed in FE-1. |
 
 ---
 

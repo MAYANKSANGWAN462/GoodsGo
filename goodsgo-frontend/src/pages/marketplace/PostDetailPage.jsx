@@ -8,6 +8,7 @@ import PostTypeBadge from '../../components/posts/PostTypeBadge';
 import Avatar from '../../components/common/Avatar';
 import Button from '../../components/common/Button';
 import Spinner from '../../components/common/Spinner';
+import BookingRequestModal from '../../components/bookings/BookingRequestModal';
 import { formatDate, formatCurrency } from '../../utils/formatters';
 import { ROUTES } from '../../constants/routes';
 
@@ -28,6 +29,7 @@ export default function PostDetailPage() {
   const toggleSaveMutation = useToggleSave(postId);
   const reportMutation = useReportPost();
 
+  const [bookingModalOpen, setBookingModalOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState('');
   const [reportDesc, setReportDesc] = useState('');
@@ -197,7 +199,7 @@ export default function PostDetailPage() {
               {post.status === 'active' && (
                 <Button
                   fullWidth
-                  onClick={() => toast('Booking feature coming in the next release!')}
+                  onClick={() => setBookingModalOpen(true)}
                 >
                   Request Booking
                 </Button>
@@ -243,6 +245,13 @@ export default function PostDetailPage() {
           )}
         </div>
       </div>
+
+      {/* ── Booking request modal ────────────────────────────────────── */}
+      <BookingRequestModal
+        isOpen={bookingModalOpen}
+        onClose={() => setBookingModalOpen(false)}
+        postId={postId}
+      />
 
       {/* ── Report modal ─────────────────────────────────────────────── */}
       {reportOpen && (

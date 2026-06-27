@@ -8,6 +8,51 @@ function cleanParams(filters) {
 }
 
 /**
+ * Create a new post. Sends multipart/form-data.
+ * @param {FormData} formData - Post fields + up to 5 image files (field name: 'images')
+ * @returns {Promise<object>} Created post object
+ */
+export async function createPost(formData) {
+  const res = await api.post('/posts', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return unwrapResponse(res).data;
+}
+
+/**
+ * Update an existing post. Sends multipart/form-data.
+ * @param {string} postId
+ * @param {FormData} formData - Updatable fields + optional new images
+ * @returns {Promise<object>} Updated post object
+ */
+export async function updatePost(postId, formData) {
+  const res = await api.put(`/posts/${postId}`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return unwrapResponse(res).data;
+}
+
+/**
+ * Permanently delete a post. Owner-only, enforced by backend.
+ * @param {string} postId
+ * @returns {Promise<void>}
+ */
+export async function deletePost(postId) {
+  await api.delete(`/posts/${postId}`);
+}
+
+/**
+ * Toggle a post's visibility between active and inactive.
+ * @param {string} postId
+ * @param {'active'|'inactive'} status
+ * @returns {Promise<object>} Updated post object
+ */
+export async function updatePostStatus(postId, status) {
+  const res = await api.put(`/posts/${postId}/status`, { status });
+  return unwrapResponse(res).data;
+}
+
+/**
  * Fetch the marketplace post feed with optional filters.
  * @param {object} [filters] - Query params: post_type, vehicle_type, goods_category,
  *   origin_city, destination_city, date_from, date_to, min_price, max_price,
@@ -57,5 +102,14 @@ export async function reportPost(postId, body) {
  */
 export async function getMyPosts(filters = {}) {
   const res = await api.get('/users/me/posts', { params: cleanParams(filters) });
+  return unwrapResponse(res);
+}
+
+/**
+ * Fetch the authenticated user's saved posts.
+ * @returns {Promise<{ data: Array, meta: object }>}
+ */
+export async function getSavedPosts() {
+  const res = await api.get('/users/me/saved-posts');
   return unwrapResponse(res);
 }

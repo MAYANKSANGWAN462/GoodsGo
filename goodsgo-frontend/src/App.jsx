@@ -4,6 +4,8 @@ import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-quer
 import { Toaster } from 'react-hot-toast';
 
 import { AuthProvider } from './context/AuthContext';
+import { SocketProvider } from './context/SocketContext';
+import { NotificationProvider } from './context/NotificationContext';
 import ProtectedRoute from './components/guards/ProtectedRoute';
 import AdminRoute from './components/guards/AdminRoute';
 import AuthLayout from './components/layout/AuthLayout';
@@ -28,6 +30,26 @@ import UnauthorizedPage from './pages/UnauthorizedPage';
 import MarketplacePage from './pages/marketplace/MarketplacePage';
 import PostDetailPage from './pages/marketplace/PostDetailPage';
 
+// Post management pages (auth required)
+import CreatePostPage from './pages/posts/CreatePostPage';
+import EditPostPage from './pages/posts/EditPostPage';
+
+// Booking pages (auth required)
+import BookingsPage from './pages/bookings/BookingsPage';
+import BookingDetailPage from './pages/bookings/BookingDetailPage';
+
+// Chat page (auth required)
+import ChatPage from './pages/chat/ChatPage';
+
+// Notifications page (auth required)
+import NotificationsPage from './pages/notifications/NotificationsPage';
+
+// Profile pages (auth or public — FE-8)
+import MyProfilePage from './pages/profile/MyProfilePage';
+import PublicProfilePage from './pages/profile/PublicProfilePage';
+import SettingsPage from './pages/profile/SettingsPage';
+import SavedPostsPage from './pages/saved/SavedPostsPage';
+
 // Admin pages (stubs — full implementation in FE-Admin block)
 import AdminLoginPage from './pages/admin/AdminLoginPage';
 
@@ -45,14 +67,18 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AuthProvider>
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              duration: 4000,
-              style: { fontSize: '14px' },
-            }}
-          />
-          <AppRoutes />
+          <SocketProvider>
+            <NotificationProvider>
+              <Toaster
+                position="top-right"
+                toastOptions={{
+                  duration: 4000,
+                  style: { fontSize: '14px' },
+                }}
+              />
+              <AppRoutes />
+            </NotificationProvider>
+          </SocketProvider>
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
@@ -85,25 +111,25 @@ function AppRoutes() {
       {/* ── Admin login (no shell) ────────────────────────────────────── */}
       <Route path={ROUTES.ADMIN_LOGIN} element={<AdminLoginPage />} />
 
-      {/* ── Marketplace (optionalAuth — MainLayout without ProtectedRoute) */}
+      {/* ── Marketplace + Public Profile (optionalAuth — MainLayout without ProtectedRoute) */}
       <Route element={<MainLayout />}>
         <Route path={ROUTES.MARKETPLACE} element={<MarketplacePage />} />
         <Route path="/marketplace/posts/:id" element={<PostDetailPage />} />
+        <Route path="/profile/:userId" element={<PublicProfilePage />} />
       </Route>
 
       {/* ── Protected user routes (MainLayout shell) ─────────────────── */}
       <Route element={<ProtectedRoute />}>
         <Route element={<MainLayout />}>
-          <Route path={ROUTES.CREATE_POST} element={<PlaceholderPage title="Create Post" />} />
-          <Route path="/posts/:id/edit" element={<PlaceholderPage title="Edit Post" />} />
-          <Route path={ROUTES.BOOKINGS} element={<PlaceholderPage title="Bookings" />} />
-          <Route path="/bookings/:id" element={<PlaceholderPage title="Booking Detail" />} />
-          <Route path={ROUTES.CHAT} element={<PlaceholderPage title="Chat" />} />
-          <Route path={ROUTES.MY_PROFILE} element={<PlaceholderPage title="My Profile" />} />
-          <Route path={ROUTES.SETTINGS} element={<PlaceholderPage title="Settings" />} />
-          <Route path="/profile/:userId" element={<PlaceholderPage title="Public Profile" />} />
-          <Route path={ROUTES.SAVED} element={<PlaceholderPage title="Saved Posts" />} />
-          <Route path={ROUTES.NOTIFICATIONS} element={<PlaceholderPage title="Notifications" />} />
+          <Route path={ROUTES.CREATE_POST} element={<CreatePostPage />} />
+          <Route path="/posts/:id/edit" element={<EditPostPage />} />
+          <Route path={ROUTES.BOOKINGS} element={<BookingsPage />} />
+          <Route path="/bookings/:id" element={<BookingDetailPage />} />
+          <Route path={ROUTES.CHAT} element={<ChatPage />} />
+          <Route path={ROUTES.MY_PROFILE} element={<MyProfilePage />} />
+          <Route path={ROUTES.SETTINGS} element={<SettingsPage />} />
+          <Route path={ROUTES.SAVED} element={<SavedPostsPage />} />
+          <Route path={ROUTES.NOTIFICATIONS} element={<NotificationsPage />} />
           <Route path={ROUTES.PAYMENTS} element={<PlaceholderPage title="Payments" />} />
         </Route>
       </Route>

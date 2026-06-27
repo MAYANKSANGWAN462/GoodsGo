@@ -1,37 +1,43 @@
 # GoodsGo — Frontend Module Context
 
 > **Purpose:** Active implementation brief. Regenerate this file completely after every completed frontend module.
-> **Current block:** FE-4 — Create/Edit Post (All 3 Post Types)
+> **Current block:** FE-9 — Reviews (Create Review + Review Lists)
 > **Status:** Not started
 > **Max size:** 150 lines. This constraint is intentional — keep it tight.
 
 ---
 
-## Current Block: FE-4 — Create/Edit Post (All 3 Post Types)
+## Current Block: FE-9 — Reviews (Create Review + Review Lists)
 
 ### Module Goal
-Implement the Create Post and Edit Post pages. Each of the three post types (`need_transport`, `vehicle_available`, `return_journey`) has a different form. The parent page handles post-type selection and delegates to the matching form component.
+Implement the review creation flow (on BookingDetailPage after a booking is `completed`) and the review display components used by PublicProfilePage and MyProfilePage. Also wire the inline `ReviewCard` in `PublicProfilePage` into the proper shared component.
 
-### Why this block fourth
-Create Post is gated on email verification. It also introduces multipart form submission (images), which is the most complex form pattern in the app. FE-5 (Bookings) links back to post detail — having posts creatable first makes the full booking loop testable.
+### Why this block ninth
+Profile (FE-8) established `useReviews.js` (useUserReviews, useMyReviews, useDeleteReview) and `reviews.service.js`. FE-9 adds `createReview` to the service and `useCreateReview` to the hook, then builds the display and form components.
 
 ---
 
 ### Files to Implement (exist as stubs — replace now)
 ```
-src/pages/posts/CreatePostPage.jsx        ← Post-type selector; renders matching form
-src/pages/posts/EditPostPage.jsx          ← Pre-fills matching form with existing post data
-src/components/posts/NeedTransportForm.jsx
-src/components/posts/VehicleAvailableForm.jsx
-src/components/posts/ReturnJourneyForm.jsx
-src/components/common/Select.jsx          ← Dropdown; options array prop; RHF register()
-src/components/common/Textarea.jsx        ← Multi-line input; same interface as Input
+src/components/reviews/ReviewCard.jsx    ← Single review: StarRating, comment, reviewer avatar+name,
+                                            date, role badge (as_customer / as_transporter),
+                                            optional delete button (own review, within edit window)
+src/components/reviews/ReviewList.jsx    ← Array of ReviewCard + Pagination
+src/components/reviews/ReviewForm.jsx    ← Create review form: StarRating (interactive) + comment
+                                            + reviewRole select; shown on BookingDetailPage when
+                                            booking is 'completed' and user hasn't reviewed yet
 ```
 
 ### Files to Modify (targeted changes only)
 ```
-src/services/posts.service.js  ← Add createPost, updatePost, deletePost, updatePostStatus
-src/hooks/usePosts.js          ← Add useCreatePost, useUpdatePost, useDeletePost, useUpdatePostStatus
+src/services/reviews.service.js  ← Add createReview(body)
+src/hooks/useReviews.js          ← Add useCreateReview(); add useBookingReviews(bookingId)
+src/pages/profile/PublicProfilePage.jsx  ← Replace inline ReviewCard with imported ReviewCard;
+                                            replace inline review list with ReviewList component
+src/pages/profile/MyProfilePage.jsx      ← Replace Reviews tab EmptyState with ReviewList
+                                            (using useMyReviews, not paginated by userId)
+src/pages/bookings/BookingDetailPage.jsx ← Add ReviewForm section after booking.status === 'completed';
+                                            add useBookingReviews to show existing reviews
 ```
 
 ---
@@ -39,72 +45,52 @@ src/hooks/usePosts.js          ← Add useCreatePost, useUpdatePost, useDeletePo
 ### Backend APIs Required
 | Endpoint | Service fn | Notes |
 |---|---|---|
-| `POST /posts` | `createPost` | multipart; fields differ per post_type; images up to 5 |
-| `PUT /posts/:postId` | `updatePost` | multipart; owner enforced backend |
-| `DELETE /posts/:postId` | `deletePost` | behind ConfirmDialog |
-| `PUT /posts/:postId/status` | `updatePostStatus` | toggle active/inactive |
-| `GET /config/options` | already cached as `['config']` | vehicle types + goods categories |
-| `GET /posts/:postId` | already in usePosts.js | for EditPostPage pre-fill |
-
-### Post-type field maps
-| Type | Fields |
-|---|---|
-| `need_transport` | originCity, destinationCity, scheduledDate, goodsCategoryId, weightKg, goodsDescription, specialRequirements?, priceEstimate?, images |
-| `vehicle_available` | originCity, destinationCity, scheduledDate, vehicleTypeId, availableWeightKg, priceEstimate?, images |
-| `return_journey` | originCity, destinationCity, scheduledDate, vehicleTypeId, availableWeightKg, priceEstimate?, images |
-
----
-
-### Zustand Stores Involved
-- `useAuthStore` — read `user.isEmailVerified`; show verification banner if false
-
-### React Query Conventions
-- On `createPost` success: invalidate `['posts']` + `['my-posts']`; redirect to new post detail
-- On `updatePost` success: invalidate `['post', postId]` + `['my-posts']`; redirect to post detail
-- On `deletePost` success: invalidate `['posts']` + `['my-posts']`; redirect to `/profile/me`
+| `POST /reviews` | `createReview` | `{ bookingId, rating, comment, reviewRole: 'as_customer'\|'as_transporter' }` |
+| `GET /reviews/bookings/:bookingId` | `getBookingReviews` (new) | query key `['booking-reviews', bookingId]` |
+| `GET /reviews/users/:userId` | `getUserReviews` (exists) | already implemented |
+| `GET /users/me/reviews` | `getMyReviews` (exists) | already implemented |
+| `DELETE /reviews/:reviewId` | `deleteReview` (exists) | already implemented |
 
 ### Component Relationships
 ```
-CreatePostPage
-  ├── post-type selector (three <Button> tabs)
-  └── {NeedTransportForm | VehicleAvailableForm | ReturnJourneyForm}
-        ├── Select (vehicle/goods category from config)
-        ├── Input (cities, weight, price)
-        ├── Textarea (description, special requirements)
-        └── image file input (up to 5 files)
+BookingDetailPage (completed booking)
+  └── ReviewForm (shown if no review yet from current user)
+        ├── StarRating (interactive, size='lg')
+        └── Textarea (comment)
 
-EditPostPage
-  └── usePost(postId) → pre-fill → same form component tree
+PublicProfilePage
+  └── ReviewList
+        └── ReviewCard (read-only)
+
+MyProfilePage (Reviews tab)
+  └── ReviewList (reviews I wrote, via useMyReviews)
+        └── ReviewCard (with delete button if within edit window)
 ```
 
----
-
 ### Design Notes
-- Post-type selector: three tab-style buttons at the top of CreatePostPage; selected type highlighted.
-- All three form components share the same layout structure — form fields + image upload area at bottom + submit button.
-- Image upload: native `<input type="file" multiple accept="image/*" />` wrapped in a styled drop zone. Show thumbnails of selected files. Max 5 images.
-- Email verification banner: if `!user.isEmailVerified`, show a dismissible banner at the top of CreatePostPage with a "Resend verification" button; do not hide the form entirely.
-- On `EMAIL_NOT_VERIFIED` (403) error from backend, also show the banner.
-- Edit mode: `EditPostPage` fetches the post, checks ownership via `user.id === post.owner.id` (redirect to unauthorized if not owner), then renders the correct form with values pre-filled.
-- `Select` and `Textarea` common components must follow the same RHF/Yup/error-prop pattern as `Input`.
+- `ReviewForm` uses React Hook Form + Yup. Schema: rating (number, 1–5, required), comment (string, 10–1000 chars, required), reviewRole (enum, required).
+- `reviewRole` should be pre-determined based on user's role in the booking (requester → 'as_customer'; post owner → 'as_transporter'). Pass it as a hidden field or derive it in the hook.
+- `ReviewCard`: show role badge only when the context is "reviews I wrote" (MyProfilePage). On PublicProfilePage, omit the role badge.
+- On success of `createReview`: invalidate `['booking-reviews', bookingId]` and `['public-profile', revieweeId]`. The `revieweeId` is the other party in the booking.
+- Delete button on ReviewCard: only for own reviews (`review.reviewerId === me.id`) and only if `review.isEditable` (or within edit window). Backend enforces; front end hides the button when not applicable.
 
 ### Testing Checklist (manual, human-executed)
-- [ ] `/posts/create` redirects to `/login` when unauthenticated
-- [ ] Post-type selector tabs switch the visible form
-- [ ] `need_transport` form validates and submits; new post appears in Marketplace
-- [ ] `vehicle_available` form validates and submits correctly
-- [ ] `return_journey` form validates and submits correctly
-- [ ] Image upload preview shows thumbnails; max 5 enforced on frontend
-- [ ] Editing own post pre-fills fields correctly
-- [ ] Editing another user's post → 403 from backend → error toast
-- [ ] Deleting a post (behind ConfirmDialog) removes it from feed
-- [ ] Toggle active/inactive status updates post badge on detail page
-- [ ] Email unverified banner shows and "Resend" button works
+- [ ] BookingDetailPage shows ReviewForm only when booking.status === 'completed'
+- [ ] Submitting ReviewForm with rating 1–5, comment, and role creates a review; form disappears on success
+- [ ] Rating below 1 or above 5 shows inline validation error
+- [ ] Comment shorter than 10 characters shows inline validation error
+- [ ] Submitting twice shows `REVIEW_ALREADY_EXISTS` toast error
+- [ ] PublicProfilePage shows real ReviewList (not the inline component from FE-8)
+- [ ] MyProfilePage Reviews tab shows list of reviews I've written with delete buttons
+- [ ] Delete review within edit window works; outside window shows API error toast
+- [ ] No token in localStorage or sessionStorage throughout the flow
 
 ---
 
 ### Notes for This Block
-- `Modal.jsx` and `ConfirmDialog.jsx` are stubs — implement `ConfirmDialog` as part of this block (needed for delete). `Modal.jsx` full implementation can wait for FE-5.
-- Install no new packages — all required packages are already installed.
-- Yup schemas for each form type should mirror the backend Joi schemas in `posts.validator.js`.
-- `LocationAutocomplete.jsx` is NOT built in this block — use plain text inputs for city fields.
+- `src/components/reviews/ReviewCard.jsx` stub exists — read before writing.
+- `src/components/reviews/ReviewList.jsx` stub exists — read before writing.
+- `src/components/reviews/ReviewForm.jsx` stub exists — read before writing.
+- The inline `ReviewCard` in `PublicProfilePage.jsx` should be removed and replaced with the shared component.
+- `MyProfilePage` Reviews tab currently shows `<EmptyState>` — replace with `<ReviewList>` using `useMyReviews()`.
+- Check `BookingDetailPage.jsx` before editing — understand its current structure (stub sections for payment and reviews) before adding `ReviewForm`.

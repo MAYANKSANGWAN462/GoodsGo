@@ -3,6 +3,7 @@ import { ROUTES } from '../constants/routes';
 import Button from '../components/common/Button';
 import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
+import HeroBackground from '../components/home/HeroBackground';
 import useAuth from '../hooks/useAuth';
 
 const FEATURES = [
@@ -108,23 +109,60 @@ export default function HomePage() {
       <Navbar />
 
       {/* ── Hero ─────────────────────────────────────────────────── */}
-      <section className="bg-surface py-20 sm:py-28 px-4">
-        <div className="mx-auto max-w-4xl flex flex-col items-center text-center">
+      <section style={{ position: 'relative', height: 'min(100vh, 680px)', minHeight: '480px' }}>
+        {/* Scenic background illustration */}
+        <HeroBackground />
+
+        {/* Content overlay */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            justifyContent: 'center',
+            padding: '0 6%',
+            zIndex: 10,
+          }}
+        >
           <img
             src="/GOODS_GO.png"
             alt="GoodsGo"
-            className="h-20 w-20 object-contain mb-8"
+            style={{ height: '64px', width: '64px', objectFit: 'contain', marginBottom: '20px' }}
             onError={(e) => { e.currentTarget.style.display = 'none'; }}
           />
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-text leading-tight">
+          <h1
+            style={{
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontWeight: 700,
+              fontSize: 'clamp(32px, 5vw, 72px)',
+              lineHeight: 1.04,
+              color: '#2a2620',
+              letterSpacing: '-0.5px',
+              textShadow: '0 2px 18px rgba(255,244,220,0.6)',
+              maxWidth: '14ch',
+              margin: 0,
+            }}
+          >
             Move goods.{' '}
-            <span className="text-primary">Find transport.</span>
+            <span style={{ color: '#c47b1a' }}>Find transport.</span>
           </h1>
-          <p className="mt-6 text-lg sm:text-xl text-text-muted max-w-2xl leading-relaxed">
+          <p
+            style={{
+              marginTop: '16px',
+              fontFamily: "'Manrope', sans-serif",
+              fontSize: 'clamp(15px, 1.4vw, 20px)',
+              fontWeight: 500,
+              color: '#4a4338',
+              maxWidth: '38ch',
+              lineHeight: 1.55,
+            }}
+          >
             GoodsGo connects people who need to transport goods with vehicle owners — simply,
-            transparently, and securely. Post a need or offer your vehicle in minutes.
+            transparently, and securely.
           </p>
-          <div className="mt-10 flex flex-wrap gap-4 justify-center">
+          <div style={{ marginTop: '28px', display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
             <Link to={ROUTES.MARKETPLACE}>
               <Button size="lg">Browse Marketplace</Button>
             </Link>
