@@ -1,14 +1,14 @@
 # GoodsGo — Current Development State
 
 > **Purpose:** Concise snapshot of where development stands right now.  
-> **Last updated:** 2026-06-27 (after FE-9 — Reviews — create review on BookingDetailPage + ReviewList on profile pages)  
+> **Last updated:** 2026-06-28 (after FE-10 — Payments — Razorpay initiate + verify flow + PaymentHistoryPage)  
 > **Source of truth for architecture/requirements:** `docs/PROJECT_CONTEXT.md`
 
 ---
 
 ## Current Project Phase
 
-Frontend development — FE-9 complete. Review creation and display are fully wired: ReviewCard (role badge, editable delete button), ReviewList (paginated, shared by PublicProfilePage and MyProfilePage), ReviewForm (RHF+Yup, interactive StarRating, role derived from booking). BookingDetailPage shows existing booking reviews and ReviewForm when status is `completed` and user hasn't reviewed yet. MyProfilePage Reviews tab replaced EmptyState with ReviewList + delete. PublicProfilePage inline ReviewCard replaced with shared component. Build passes at 592 modules, 0 errors.
+Frontend development — FE-10 complete. Razorpay payment flow is fully wired: `payments.service.js` (initiatePayment, verifyPayment), `usePayments.js` (useInitiatePayment, useVerifyPayment), PaymentHistoryPage (informational — no backend GET /payments endpoint exists), and BookingDetailPage payment section (replaces stub: requester sees amount/deadline/Pay Now button; post owner sees awaiting-payment notice; paymentVerified local state confirms success; Razorpay script loaded dynamically on demand). Build passes at 596 modules, 0 errors.
 
 ---
 
@@ -17,7 +17,7 @@ Frontend development — FE-9 complete. Review creation and display are fully wi
 | Area | Progress | Notes |
 |---|---|---|
 | Backend | ~100% complete (all planned modules) | Syntax-validated; never run against a live database |
-| Frontend | FE-9 complete | Foundation + Auth + Layout + Marketplace + Post CRUD + Bookings + Chat + Notifications + Profile + Reviews wired |
+| Frontend | FE-10 complete | Foundation + Auth + Layout + Marketplace + Post CRUD + Bookings + Chat + Notifications + Profile + Reviews + Payments wired |
 | Database | Schema 100% designed, 20 migrations written | Never executed against a real Postgres instance |
 | Deployment | 0% | No hosting account confirmed, no CI/CD |
 
@@ -26,7 +26,7 @@ Frontend development — FE-9 complete. Review creation and display are fully wi
 ## Completed Blocks (in order)
 
 `A → B → C → D → E → F → H → K → I → J → L → M → N → O` (backend)  
-`FE-1 → FE-2 → FE-3 → FE-4 → FE-5 → FE-6 → FE-7 → FE-8 → FE-9` (frontend)
+`FE-1 → FE-2 → FE-3 → FE-4 → FE-5 → FE-6 → FE-7 → FE-8 → FE-9 → FE-10` (frontend)
 
 ---
 
@@ -60,6 +60,7 @@ Frontend development — FE-9 complete. Review creation and display are fully wi
 | **FE-7: Notifications (Bell + Dropdown + Page)** | **FE-7** | **Complete** — notifications.service.js; useNotifications (useNotifications, useMarkOneRead, useMarkAllRead); NotificationContext/NotificationProvider (socket subscription singleton); NotificationBell (live badge, replaces FE-2 stub); NotificationDropdown; NotificationItem (type icons, navigation); NotificationsPage (paginated); App.jsx wired with NotificationProvider |
 | **FE-8: Profile (Own Profile + Settings + Public Profile)** | **FE-8** | **Complete** — users.service.js; reviews.service.js (getUserReviews, getMyReviews, deleteReview); useUsers.js; useReviews.js (useUserReviews, useMyReviews, useDeleteReview); getSavedPosts + useSavedPosts; StarRating.jsx common component; ProfileHeader, ProfileStats, VerificationBadges profile components; MyProfilePage, PublicProfilePage, SettingsPage, SavedPostsPage; App.jsx wired |
 | **FE-9: Reviews (Create Review + Review Lists)** | **FE-9** | **Complete** — createReview + getBookingReviews added to reviews.service.js; useBookingReviews + useCreateReview added to useReviews.js; ReviewCard (role badge, delete button gated on isEditable); ReviewList (paginated, emptyTitle/emptyMessage props, internal delete management); ReviewForm (RHF+Yup, StarRating via Controller, reviewRole as hidden prop); BookingDetailPage reviews section (shows existing reviews + form for non-reviewed completed bookings); MyProfilePage Reviews tab uses ReviewList+allowDelete; PublicProfilePage inline ReviewCard replaced with shared component |
+| **FE-10: Payments (Razorpay Initiate + Verify)** | **FE-10** | **Complete** — payments.service.js (initiatePayment, verifyPayment); usePayments.js (useInitiatePayment, useVerifyPayment); PaymentHistoryPage (informational — no backend GET /payments endpoint); BookingDetailPage payment section (requester: amount/deadline/Pay Now; owner: awaiting-payment notice; paymentVerified local state; Razorpay script dynamic load); App.jsx wired |
 
 ---
 
@@ -73,7 +74,6 @@ None.
 
 | Block | Scope | Status |
 |---|---|---|
-| FE-10 | Payments — Razorpay initiate + verify flow | Not started |
 | FE-11 | Admin panel — login + all admin pages | Not started |
 | FE-12 | Polish — empty states, error boundaries, responsive audit | Not started |
 
@@ -81,14 +81,14 @@ None.
 
 ## Current Active Frontend Module
 
-**FE-10 — Payments (Razorpay Initiate + Verify)**  
+**FE-11 — Admin Panel**  
 See `docs/FRONTEND_MODULE_CONTEXT.md` for the implementation brief.
 
 ---
 
 ## Current Milestone
 
-FE-9 complete. Next milestone: FE-10 (Payments — Razorpay initiate + verify + PaymentHistoryPage).
+FE-10 complete. Next milestone: FE-11 (Admin Panel — login + dashboard + all admin management pages).
 
 ---
 
@@ -125,37 +125,35 @@ socket.io-client ^4.x    (FE-6)
 - [ ] Set all required env vars in `goodsgo-backend/.env`
 - [ ] Set `VITE_API_URL` in `goodsgo-frontend/.env` for your dev backend URL (currently `http://localhost:5000`)
 - [ ] Connect to a real PostgreSQL instance and run all 20 migrations + 4 seed scripts
-- [ ] Begin FE-10 — Payments (Razorpay initiate + verify + PaymentHistoryPage)
+- [ ] Begin FE-11 — Admin Panel (login + dashboard + user/post/booking/report/payment management)
 
 ---
 
 ## Recently Completed Work
 
-**FE-9 — Reviews (Create Review + Review Lists):**
+**FE-10 — Payments (Razorpay Initiate + Verify):**
 
-New service additions:
-- `src/services/reviews.service.js` — added `createReview(body)` and `getBookingReviews(bookingId)`
+New service file (implemented from empty stub):
+- `src/services/payments.service.js` — `initiatePayment(bookingId)` and `verifyPayment({ bookingId, orderId, paymentId, signature })`
 
-New hook additions:
-- `src/hooks/useReviews.js` — added `useBookingReviews(bookingId)` and `useCreateReview()` (mutation with cache invalidation for booking-reviews, public-profile, user-reviews)
+New hook file (created new):
+- `src/hooks/usePayments.js` — `useInitiatePayment()` (mutation, onError toast) and `useVerifyPayment()` (mutation, onSuccess invalidates `['booking', bookingId]` + toast)
 
-New component files (implemented from stubs):
-- `src/components/reviews/ReviewCard.jsx` — Avatar, name, StarRating (read-only), comment, date, role badge (showRoleBadge), delete button (when onDelete + isEditable)
-- `src/components/reviews/ReviewList.jsx` — renders ReviewCard array + Pagination + EmptyState; manages delete state internally via useDeleteReview; allowDelete, showRoleBadge, emptyTitle, emptyMessage props
-- `src/components/reviews/ReviewForm.jsx` — RHF+Yup; StarRating via Controller; comment Textarea; reviewRole shown as info text (not user-selectable)
+New page file (implemented from empty stub):
+- `src/pages/payments/PaymentHistoryPage.jsx` — informational page; no backend GET /payments endpoint confirmed; directs users to Bookings; explains 4-step payment flow; shows commission info
 
 Files modified:
-- `src/pages/profile/PublicProfilePage.jsx` — removed inline ReviewCard function; replaced review section with ReviewList
-- `src/pages/profile/MyProfilePage.jsx` — added useMyReviews; replaced Reviews tab EmptyState with ReviewList (showRoleBadge, allowDelete)
-- `src/pages/bookings/BookingDetailPage.jsx` — added useBookingReviews, useDeleteReview, useState for deletingReviewId; replaced reviews stub with full reviews section (existing reviews + ReviewForm when not yet reviewed; "waiting" message when both parties have reviewed)
+- `src/pages/bookings/BookingDetailPage.jsx` — added toast import, useInitiatePayment/useVerifyPayment imports, paymentVerified state, initiatePayment/verifyPayment mutations, loadRazorpayScript helper, handlePayNow function; replaced payment stub with full PaymentSection (accepted status only: requester sees amount/deadline/Pay Now button; owner sees awaiting-payment notice; paymentVerified shows confirmation)
+- `src/App.jsx` — added PaymentHistoryPage import; replaced PlaceholderPage for /payments route
 
-Build: `vite build` passes — 0 errors, 592 modules.
+Build: `vite build` passes — 0 errors, 596 modules.
 
 ---
 
 ## Known Technical Debt
 
-- **BookingDetailPage — payment section is a stub:** Payment: FE-10.
+- **PaymentHistoryPage has no real data:** No `GET /payments` endpoint exists in the backend. The page is informational only. If a payment history endpoint is added to the backend in the future, update `payments.service.js` and `PaymentHistoryPage.jsx` in FE-12 polish.
+- **paymentVerified local state resets on page refresh:** After verifying payment, if the user refreshes `BookingDetailPage`, the "Pay Now" button reappears. Clicking it again will call `initiatePayment`, which will throw `PAYMENT_ALREADY_COMPLETED` (409) — caught by `useInitiatePayment` onError toast. This is acceptable UX given no payment status field exists in the booking response.
 - **ProfileStats counts (postCount, bookingCount, reviewCount, cancellationCount):** Rendered as 0 if the backend's GET /users/me and GET /users/:userId responses don't include these aggregates. Verify backend formatter includes them; no frontend change needed.
 - **Location coordinates on post create:** Origin/destination lat/lng auto-geocoded on address blur; defaults to 0,0 if backend unreachable. LocationAutocomplete component deferred to FE-12 polish.
 - **ChatPage height** uses `calc(100vh - 9rem)` — may need tuning if Navbar height changes.

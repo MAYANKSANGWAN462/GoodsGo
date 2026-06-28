@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import useAuthStore from '../../stores/useAuthStore';
 import { useBooking, useBookingHistory } from '../../hooks/useBookings';
 import { useBookingReviews, useDeleteReview } from '../../hooks/useReviews';
+import { useInitiatePayment, useVerifyPayment } from '../../hooks/usePayments';
 import BookingStatusBadge from '../../components/bookings/BookingStatusBadge';
 import BookingActionButtons from '../../components/bookings/BookingActionButtons';
 import ReviewCard from '../../components/reviews/ReviewCard';
@@ -13,17 +15,36 @@ import Button from '../../components/common/Button';
 import { formatDate, formatCurrency, timeAgo } from '../../utils/formatters';
 import { ROUTES } from '../../constants/routes';
 
+/**
+ * Loads the Razorpay checkout script dynamically on demand (not at app startup).
+ * Resolves true on success, false on network failure.
+ * @returns {Promise<boolean>}
+ */
+function loadRazorpayScript() {
+  return new Promise((resolve) => {
+    if (window.Razorpay) { resolve(true); return; }
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+}
+
 export default function BookingDetailPage() {
   const { id: bookingId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const [deletingReviewId, setDeletingReviewId] = useState(null);
+  const [paymentVerified, setPaymentVerified] = useState(false);
 
   // All hooks must be called before any conditional returns
   const { data: booking, isLoading, isError } = useBooking(bookingId);
   const { data: history, isLoading: historyLoading } = useBookingHistory(bookingId);
   const { data: bookingReviewsData, isLoading: bookingReviewsLoading } = useBookingReviews(bookingId);
   const { mutate: deleteReview } = useDeleteReview();
+  const { mutate: initiatePayment, isPending: initiateLoading } = useInitiatePayment();
+  const { mutate: verifyPayment } = useVerifyPayment();
 
   if (isLoading) {
     return (
@@ -65,6 +86,43 @@ export default function BookingDetailPage() {
     setDeletingReviewId(reviewId);
     deleteReview(reviewId, {
       onSettled: () => setDeletingReviewId(null),
+    });
+  }
+
+  function handlePayNow() {
+    initiatePayment(bookingId, {
+      onSuccess: async (result) => {
+        const orderData = result.data;
+        const loaded = await loadRazorpayScript();
+        if (!loaded) {
+          toast.error('Could not load payment gateway. Please check your connection and try again.');
+          return;
+        }
+        const options = {
+          key: orderData.key,
+          amount: orderData.amount,
+          currency: orderData.currency,
+          order_id: orderData.orderId,
+          name: 'GoodsGo',
+          description: 'Booking payment',
+          prefill: { name: user?.fullName || '' },
+          theme: { color: '#f97316' },
+          handler: function (response) {
+            verifyPayment(
+              {
+                bookingId,
+                orderId: response.razorpay_order_id,
+                paymentId: response.razorpay_payment_id,
+                signature: response.razorpay_signature,
+              },
+              {
+                onSuccess: () => setPaymentVerified(true),
+              }
+            );
+          },
+        };
+        new window.Razorpay(options).open();
+      },
     });
   }
 
@@ -219,11 +277,80 @@ export default function BookingDetailPage() {
             </div>
           )}
 
-          {/* Payment stub — implemented in FE-10 */}
-          <div className="bg-surface rounded-xl border border-border p-5">
-            <h2 className="font-semibold text-text text-sm mb-2">Payment</h2>
-            <p className="text-sm text-text-muted">Payment — available in a future update.</p>
-          </div>
+          {/* Payment section — shown for accepted bookings */}
+          {booking.status === 'accepted' && (
+            <div className="bg-surface rounded-xl border border-border p-5">
+              <h2 className="font-semibold text-text text-sm mb-4">Payment</h2>
+
+              {paymentVerified ? (
+                /* Verified in this session — show confirmation */
+                <div className="flex items-start gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <span className="text-xl flex-shrink-0">✅</span>
+                  <div>
+                    <p className="text-sm font-medium text-green-800">Payment confirmed</p>
+                    <p className="text-xs text-green-700 mt-0.5">
+                      Your payment has been received. The transporter will now begin the
+                      journey and mark the booking in progress.
+                    </p>
+                  </div>
+                </div>
+              ) : isOwner ? (
+                /* Post owner view — waiting for requester to pay */
+                <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <span className="text-xl flex-shrink-0">⏳</span>
+                  <div>
+                    <p className="text-sm font-medium text-amber-800">Awaiting payment</p>
+                    <p className="text-xs text-amber-700 mt-0.5">
+                      Waiting for the requester to complete the payment.
+                      {booking.paymentDeadline && (
+                        <> Payment is due by {formatDate(booking.paymentDeadline)}.</>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                /* Requester view — pay now */
+                <div className="flex flex-col gap-4">
+                  <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                    {booking.agreedPrice != null && (
+                      <>
+                        <dt className="text-text-muted">Amount Due</dt>
+                        <dd className="font-semibold text-text">
+                          {formatCurrency(booking.agreedPrice)}
+                        </dd>
+                      </>
+                    )}
+                    {booking.platformCommissionPct != null && (
+                      <>
+                        <dt className="text-text-muted">Platform Fee</dt>
+                        <dd className="text-text">{booking.platformCommissionPct}%</dd>
+                      </>
+                    )}
+                    {booking.paymentDeadline && (
+                      <>
+                        <dt className="text-text-muted">Pay By</dt>
+                        <dd className="text-text">{formatDate(booking.paymentDeadline)}</dd>
+                      </>
+                    )}
+                  </dl>
+
+                  <Button
+                    variant="primary"
+                    onClick={handlePayNow}
+                    isLoading={initiateLoading}
+                    disabled={initiateLoading}
+                  >
+                    💳 Pay Now
+                  </Button>
+
+                  <p className="text-xs text-text-muted">
+                    Payments are processed securely via Razorpay. GoodsGo holds
+                    funds in escrow until the booking is completed.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* ── Right column: counterparty + linked post ──────────────────── */}

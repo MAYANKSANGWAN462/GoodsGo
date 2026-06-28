@@ -22,6 +22,8 @@
 
 **FE-9 implemented files:** `src/components/reviews/ReviewCard.jsx`, `src/components/reviews/ReviewList.jsx`, `src/components/reviews/ReviewForm.jsx`. `src/services/reviews.service.js` updated (createReview, getBookingReviews added). `src/hooks/useReviews.js` updated (useBookingReviews, useCreateReview added). `src/pages/profile/PublicProfilePage.jsx` updated (inline ReviewCard removed; ReviewList wired). `src/pages/profile/MyProfilePage.jsx` updated (useMyReviews added; Reviews tab wired to ReviewList with showRoleBadge + allowDelete). `src/pages/bookings/BookingDetailPage.jsx` updated (reviews section fully wired with ReviewCard, ReviewForm, useBookingReviews, useDeleteReview).
 
+**FE-10 implemented files:** `src/services/payments.service.js` (implemented from empty stub — initiatePayment, verifyPayment). `src/hooks/usePayments.js` (new file — useInitiatePayment, useVerifyPayment). `src/pages/payments/PaymentHistoryPage.jsx` (implemented from empty stub — informational page; no backend GET /payments endpoint). `src/pages/bookings/BookingDetailPage.jsx` updated (payment stub replaced with full PaymentSection; loadRazorpayScript helper; handlePayNow function; paymentVerified state). `src/App.jsx` updated (PaymentHistoryPage import; /payments route replaces PlaceholderPage).
+
 **FE-1 stubs still pending full implementation:** `src/components/layout/AdminLayout.jsx`, `src/pages/admin/AdminLoginPage.jsx`.
 
 **New directory created in FE-1:** `src/stores/` (not in original scaffold — added for Zustand stores per the plan in `docs/FRONTEND_MODULE_CONTEXT.md`).

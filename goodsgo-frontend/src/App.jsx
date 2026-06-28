@@ -50,6 +50,9 @@ import PublicProfilePage from './pages/profile/PublicProfilePage';
 import SettingsPage from './pages/profile/SettingsPage';
 import SavedPostsPage from './pages/saved/SavedPostsPage';
 
+// Payments page (FE-10)
+import PaymentHistoryPage from './pages/payments/PaymentHistoryPage';
+
 // Admin pages (stubs — full implementation in FE-Admin block)
 import AdminLoginPage from './pages/admin/AdminLoginPage';
 
@@ -130,7 +133,7 @@ function AppRoutes() {
           <Route path={ROUTES.SETTINGS} element={<SettingsPage />} />
           <Route path={ROUTES.SAVED} element={<SavedPostsPage />} />
           <Route path={ROUTES.NOTIFICATIONS} element={<NotificationsPage />} />
-          <Route path={ROUTES.PAYMENTS} element={<PlaceholderPage title="Payments" />} />
+          <Route path={ROUTES.PAYMENTS} element={<PaymentHistoryPage />} />
         </Route>
       </Route>
 
