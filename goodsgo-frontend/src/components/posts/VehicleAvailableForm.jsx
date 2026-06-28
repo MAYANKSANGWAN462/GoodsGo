@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react';
-import { useForm } from 'react-hook-form';
+import { useState } from 'react';
+import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { useQueryClient } from '@tanstack/react-query';
@@ -9,7 +9,7 @@ import Input from '../common/Input';
 import Textarea from '../common/Textarea';
 import Select from '../common/Select';
 import Button from '../common/Button';
-import { geocodeAddress } from '../../services/location.service';
+import LocationAutocomplete from '../location/LocationAutocomplete';
 
 const MAX_IMAGES = 5;
 
@@ -61,6 +61,7 @@ export default function VehicleAvailableForm({
 
   const {
     register,
+    control,
     handleSubmit,
     formState: { errors },
   } = useForm({
@@ -87,24 +88,6 @@ export default function VehicleAvailableForm({
     setImagePreviews(next.map((f) => URL.createObjectURL(f)));
     setImageError('');
   };
-
-  const geocodeOrigin = useCallback(async (e) => {
-    const addr = e.target.value.trim();
-    if (addr.length < 3) return;
-    try {
-      const result = await geocodeAddress(addr);
-      if (result?.lat != null) setOriginCoords({ lat: result.lat, lng: result.lng });
-    } catch { /* Silent — use 0,0 fallback */ }
-  }, []);
-
-  const geocodeDest = useCallback(async (e) => {
-    const addr = e.target.value.trim();
-    if (addr.length < 3) return;
-    try {
-      const result = await geocodeAddress(addr);
-      if (result?.lat != null) setDestCoords({ lat: result.lat, lng: result.lng });
-    } catch { /* Silent */ }
-  }, []);
 
   const buildFormData = (values) => {
     const fd = new FormData();
@@ -146,19 +129,41 @@ export default function VehicleAvailableForm({
           Route
         </h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Input
-            id="va_origin"
-            label="Departing from"
-            placeholder="e.g. New Delhi"
-            error={errors.origin_address?.message}
-            {...register('origin_address', { onBlur: geocodeOrigin })}
+          <Controller
+            name="origin_address"
+            control={control}
+            render={({ field, fieldState }) => (
+              <LocationAutocomplete
+                id="va_origin"
+                label="Departing from"
+                placeholder="e.g. New Delhi"
+                value={field.value ?? ''}
+                onChange={field.onChange}
+                onSelect={(displayName, coords) => {
+                  field.onChange(displayName);
+                  setOriginCoords(coords);
+                }}
+                error={fieldState.error?.message}
+              />
+            )}
           />
-          <Input
-            id="va_destination"
-            label="Heading towards (optional)"
-            placeholder="e.g. Mumbai"
-            error={errors.destination_address?.message}
-            {...register('destination_address', { onBlur: geocodeDest })}
+          <Controller
+            name="destination_address"
+            control={control}
+            render={({ field, fieldState }) => (
+              <LocationAutocomplete
+                id="va_destination"
+                label="Heading towards (optional)"
+                placeholder="e.g. Mumbai"
+                value={field.value ?? ''}
+                onChange={field.onChange}
+                onSelect={(displayName, coords) => {
+                  field.onChange(displayName);
+                  setDestCoords(coords);
+                }}
+                error={fieldState.error?.message}
+              />
+            )}
           />
         </div>
       </section>

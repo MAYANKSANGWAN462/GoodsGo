@@ -1,110 +1,67 @@
 # GoodsGo — Frontend Module Context
 
 > **Purpose:** Active implementation brief. Regenerate this file completely after every completed frontend module.
-> **Current block:** FE-11 — Admin Panel
-> **Status:** Not started
+> **Current block:** COMPLETE — All 12 frontend modules implemented (FE-1 through FE-12)
+> **Status:** Frontend development is finished. No further implementation modules remain.
 > **Max size:** 150 lines. This constraint is intentional — keep it tight.
 
 ---
 
-## Current Block: FE-11 — Admin Panel
+## Frontend Status: COMPLETE
 
-### Module Goal
-Build the full admin panel: login page, layout shell, and all 7 admin management pages. Admin auth uses a completely separate Zustand store (`useAdminStore`), a separate Axios instance (`adminApi`), and a separate login endpoint. Never mix user and admin token state.
+All planned frontend modules have been built and verified:
 
-### Why this block eleventh
-All user-facing flows (auth, posts, bookings, chat, notifications, profile, reviews, payments) are complete. The admin panel is the last major feature before the FE-12 polish pass.
+| Module | Status |
+|---|---|
+| FE-1: Foundation + Auth | Complete |
+| FE-2: Layout Shell + HomePage | Complete |
+| FE-3: Config Fetch + Marketplace + Post Detail | Complete |
+| FE-4: Create/Edit Post (All 3 Post Types) | Complete |
+| FE-5: Bookings (List + Detail + State Actions) | Complete |
+| FE-6: Chat (Conversation List + Real-Time Window) | Complete |
+| FE-7: Notifications (Bell + Dropdown + Page) | Complete |
+| FE-8: Profile (Own Profile + Settings + Public Profile) | Complete |
+| FE-9: Reviews (Create Review + Review Lists) | Complete |
+| FE-10: Payments (Razorpay Initiate + Verify) | Complete |
+| FE-11: Admin Panel | Complete |
+| FE-12: Polish Pass | Complete |
 
----
-
-### Files to Implement (exist as stubs — replace now)
-```
-src/components/layout/AdminLayout.jsx       ← Admin shell: AdminSidebar + AdminTopbar + <Outlet />
-src/pages/admin/AdminLoginPage.jsx          ← Admin login form using adminApi; stores in useAdminStore
-src/pages/admin/AdminDashboardPage.jsx      ← Stats overview (user count, active posts, pending reports)
-src/pages/admin/AdminUsersPage.jsx          ← User list: search + status filter; suspend/reactivate
-src/pages/admin/AdminUserDetailPage.jsx     ← Single user detail; suspend/reactivate action
-src/pages/admin/AdminPostsPage.jsx          ← Post list: status/reported filters; hide/restore
-src/pages/admin/AdminBookingsPage.jsx       ← Booking overview (read-only)
-src/pages/admin/AdminReportsPage.jsx        ← Report queue; resolve/dismiss; disputes tab
-src/pages/admin/AdminPaymentsPage.jsx       ← Payment list; release/refund actions
-src/pages/admin/AdminReviewsPage.jsx        ← Review list (read-only moderation)
-```
-
-### Files to Create (new — not in scaffold)
-```
-src/services/admin.service.js              ← All admin API calls using adminApi instance
-src/hooks/useAdmin.js                      ← React Query hooks for admin data
-```
-
-### Files to Modify (targeted changes only)
-```
-src/App.jsx   ← Replace all PlaceholderPage elements inside <AdminRoute> with real page imports
-```
+**Build:** `vite build` → 609 modules, 0 errors (as of 2026-06-28).
 
 ---
 
-### Backend APIs Required
-| Endpoint | Service fn | Notes |
-|---|---|---|
-| `POST /auth/login` (admin credentials) | `adminLogin(email, password)` | Same auth endpoint; admin JWT returned |
-| `POST /auth/logout` | `adminLogout()` | Clears admin httpOnly cookie |
-| `GET /admin/users` | `getAdminUsers(filters)` | `?status=&search=&page=&limit=` |
-| `GET /admin/users/:userId` | `getAdminUser(userId)` | Single user detail |
-| `PUT /admin/users/:userId/suspend` | `suspendUser(userId, reason)` | |
-| `PUT /admin/users/:userId/reactivate` | `reactivateUser(userId)` | |
-| `GET /admin/posts` | `getAdminPosts(filters)` | `?status=&reported=&page=&limit=` |
-| `PUT /admin/posts/:postId/hide` | `hidePost(postId)` | |
-| `PUT /admin/posts/:postId/restore` | `restorePost(postId)` | |
-| `GET /admin/reports` | `getAdminReports(filters)` | `?status=&page=&limit=` |
-| `PUT /admin/reports/:reportId/resolve` | `resolveReport(id, body)` | `{ adminNotes, action }` |
-| `PUT /admin/reports/:reportId/dismiss` | `dismissReport(id, body)` | `{ adminNotes }` |
-| `GET /admin/disputes` | `getAdminDisputes(filters)` | `?status=&page=&limit=` |
-| `POST /admin/payments/:bookingId/release` | `releasePayment(bookingId)` | |
-| `POST /admin/payments/:bookingId/refund` | `refundPayment(bookingId, body)` | `{ amount, reason }` |
+## What Was Done in FE-12 (Most Recent)
 
-> **Admin auth note:** Verify with backend before implementing — `docs/API_CONTRACT.md` Section 11 flags that admin login may use the same `/api/v1/auth/*` routes gated by admin credentials, not a separate `/admin/auth/login` endpoint. Check `goodsgo-backend/src/modules/admin/` routes for the actual path.
-
-### Component Relationships
-```
-AdminRoute → AdminLayout (AdminSidebar + AdminTopbar + <Outlet />)
-  AdminLoginPage (no layout — full screen, uses adminApi)
-  AdminDashboardPage
-  AdminUsersPage → AdminUserDetailPage
-  AdminPostsPage
-  AdminBookingsPage (read-only)
-  AdminReportsPage (tabs: Reports | Disputes)
-  AdminPaymentsPage
-  AdminReviewsPage (read-only)
-```
-
-### Design Notes
-- `AdminLayout` is visually distinct from `MainLayout`: dark sidebar, admin-only nav links.
-- `useAdminStore` holds `{ admin, adminToken, isAdminAuthenticated }` — already scaffolded in FE-1.
-- `adminApi` in `src/services/api.js` already exists with token injection + 401→redirect.
-- All admin data queries use `adminApi`, not `api`. Route guards use `AdminRoute` (already wired in App.jsx).
-- Paginated lists (users, posts, reports) follow the same Pagination + EmptyState pattern as user-facing pages.
-- Destructive actions (suspend, hide, resolve) use `<ConfirmDialog>` before calling the mutation.
-
-### Testing Checklist (manual, human-executed)
-- [ ] `/admin/login` renders without errors; non-admin login shows error
-- [ ] Successful admin login stores token in useAdminStore (not localStorage)
-- [ ] `/admin` dashboard shows overview stats
-- [ ] `/admin/users` lists users; search and status filter work
-- [ ] Suspend/reactivate user triggers ConfirmDialog; list refreshes after action
-- [ ] `/admin/posts` lists posts; hide/restore work
-- [ ] `/admin/reports` shows report queue; resolve/dismiss work
-- [ ] `/admin/payments` shows payment list; release/refund work
-- [ ] Admin logout redirects to `/admin/login`; adminToken cleared
-- [ ] Non-admin user navigating to `/admin` is redirected to `/admin/login`
-- [ ] No admin token in localStorage or sessionStorage at any point
+- **`ErrorBoundary.jsx`** — React class component; catches render errors in any subtree; fallback: red error card + "Reload page" button; mounted in `AppRoutes` wrapping all `<Routes>`.
+- **`LocationAutocomplete.jsx`** — Controlled address input; debounced geocoding (400ms, ≥3 chars) via `GET /location/geocode`; shows one suggestion row; `onMouseDown + preventDefault` for reliable selection; wired via RHF `Controller`.
+- **NeedTransportForm / VehicleAvailableForm / ReturnJourneyForm** — Replaced `Input + onBlur geocode` pattern with `Controller + LocationAutocomplete` for origin/destination fields.
+- **ChatWindow.jsx** — Scroll-to-top triggers `getMessages(id, { page: N })` for older messages; local `olderMessages` state prepended above current page; scroll-position restored via `requestAnimationFrame`.
+- **App.jsx** — `<ErrorBoundary>` imported and wraps `<Routes>` in `AppRoutes`.
+- **propTypes audit** — `ReportRow` and `DisputeRow` in `AdminReportsPage` already had correct propTypes; no changes needed.
+- **Docs updated** — `FRONTEND_ARCHITECTURE.md`, `UI_COMPONENT_GUIDE.md` (ErrorBoundary + LocationAutocomplete entries), `CURRENT_STATE.md`, `FRONTEND_MODULE_CONTEXT.md`.
 
 ---
 
-### Notes for This Block
-- Read `docs/API_CONTRACT.md` Section 11 before writing any admin service calls.
-- Verify the actual admin login endpoint path in `goodsgo-backend/src/modules/admin/` or `goodsgo-backend/src/modules/auth/`.
-- `src/stores/useAdminStore.js` is already implemented (FE-1) — do not recreate it.
-- `adminApi` in `src/services/api.js` is already implemented (FE-1) — do not recreate it.
-- `AdminRoute` in `src/components/guards/AdminRoute.jsx` is already implemented (FE-1).
-- Admin pages are desktop-primary; mobile responsiveness is best-effort for this block.
+## Known Remaining Technical Debt
+
+- **MapPicker.jsx stub** — `src/components/location/MapPicker.jsx` exists as an empty stub. Requires `leaflet`/`react-leaflet` (not installed). Deferred indefinitely unless map picker is explicitly requested.
+- **storage.js stub** — `src/utils/storage.js` must remain empty (security constraint: no tokens in localStorage).
+- **PaymentHistoryPage** — Informational only; no `GET /payments` list endpoint in backend.
+- **AdminBookingsPage / AdminReviewsPage** — Informational only; no backend list endpoints.
+- **Admin session expiry** — 8h JWT, no refresh token; on 401 `adminApi` clears store + redirects to `/admin/login`.
+- **paymentVerified local state** — Resets on page refresh (not persisted in React Query cache).
+- **ChatWindow older-message sort** — Assumes page 2 = older than page 1. Backend sort direction should be verified when running against a live instance.
+- **MyProfilePage Reviews tab** — `useMyReviews` fetches all reviews without pagination params.
+- **Responsive audit** — 375px breakpoint audit deferred; main pages are Tailwind-responsive but no pixel-level audit was completed.
+
+---
+
+## Next Steps (Post-Frontend)
+
+1. **Run `npm install`** in `goodsgo-backend/` to install `razorpay@^2.9.4`.
+2. **Configure `.env`** in `goodsgo-backend/` with all required vars including `JWT_ADMIN_SECRET`.
+3. **Provision a PostgreSQL instance** (Neon.tech free tier recommended).
+4. **Run migrations** via `npm run migrate` in `goodsgo-backend/`.
+5. **Run seeds** via `npm run seed` (includes `seed_admin.js` for admin user).
+6. **Set `VITE_API_URL`** in `goodsgo-frontend/.env` to point at the running backend.
+7. **Deploy** backend (Railway/Render) + frontend (Vercel/Netlify).

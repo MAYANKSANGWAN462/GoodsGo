@@ -11,6 +11,7 @@ import AdminRoute from './components/guards/AdminRoute';
 import AuthLayout from './components/layout/AuthLayout';
 import MainLayout from './components/layout/MainLayout';
 import AdminLayout from './components/layout/AdminLayout';
+import ErrorBoundary from './components/common/ErrorBoundary';
 
 import { ROUTES } from './constants/routes';
 import { getConfigOptions } from './services/config.service';
@@ -53,8 +54,16 @@ import SavedPostsPage from './pages/saved/SavedPostsPage';
 // Payments page (FE-10)
 import PaymentHistoryPage from './pages/payments/PaymentHistoryPage';
 
-// Admin pages (stubs — full implementation in FE-Admin block)
+// Admin pages (FE-11)
 import AdminLoginPage from './pages/admin/AdminLoginPage';
+import AdminDashboardPage from './pages/admin/AdminDashboardPage';
+import AdminUsersPage from './pages/admin/AdminUsersPage';
+import AdminUserDetailPage from './pages/admin/AdminUserDetailPage';
+import AdminPostsPage from './pages/admin/AdminPostsPage';
+import AdminBookingsPage from './pages/admin/AdminBookingsPage';
+import AdminReportsPage from './pages/admin/AdminReportsPage';
+import AdminPaymentsPage from './pages/admin/AdminPaymentsPage';
+import AdminReviewsPage from './pages/admin/AdminReviewsPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -101,6 +110,7 @@ function AppRoutes() {
   });
 
   return (
+    <ErrorBoundary>
     <Routes>
       {/* ── Public root ──────────────────────────────────────────────── */}
       <Route path={ROUTES.HOME} element={<HomePage />} />
@@ -140,14 +150,14 @@ function AppRoutes() {
       {/* ── Protected admin routes (AdminLayout shell) ───────────────── */}
       <Route element={<AdminRoute />}>
         <Route element={<AdminLayout />}>
-          <Route path={ROUTES.ADMIN_DASHBOARD} element={<PlaceholderPage title="Admin Dashboard" />} />
-          <Route path={ROUTES.ADMIN_USERS} element={<PlaceholderPage title="Admin Users" />} />
-          <Route path="/admin/users/:id" element={<PlaceholderPage title="Admin User Detail" />} />
-          <Route path={ROUTES.ADMIN_POSTS} element={<PlaceholderPage title="Admin Posts" />} />
-          <Route path={ROUTES.ADMIN_BOOKINGS} element={<PlaceholderPage title="Admin Bookings" />} />
-          <Route path={ROUTES.ADMIN_REPORTS} element={<PlaceholderPage title="Admin Reports" />} />
-          <Route path={ROUTES.ADMIN_PAYMENTS} element={<PlaceholderPage title="Admin Payments" />} />
-          <Route path={ROUTES.ADMIN_REVIEWS} element={<PlaceholderPage title="Admin Reviews" />} />
+          <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboardPage />} />
+          <Route path={ROUTES.ADMIN_USERS} element={<AdminUsersPage />} />
+          <Route path="/admin/users/:id" element={<AdminUserDetailPage />} />
+          <Route path={ROUTES.ADMIN_POSTS} element={<AdminPostsPage />} />
+          <Route path={ROUTES.ADMIN_BOOKINGS} element={<AdminBookingsPage />} />
+          <Route path={ROUTES.ADMIN_REPORTS} element={<AdminReportsPage />} />
+          <Route path={ROUTES.ADMIN_PAYMENTS} element={<AdminPaymentsPage />} />
+          <Route path={ROUTES.ADMIN_REVIEWS} element={<AdminReviewsPage />} />
         </Route>
       </Route>
 
@@ -158,6 +168,7 @@ function AppRoutes() {
       {/* ── Catch-all ────────────────────────────────────────────────── */}
       <Route path="*" element={<Navigate to={ROUTES.NOT_FOUND} replace />} />
     </Routes>
+    </ErrorBoundary>
   );
 }
 

@@ -143,11 +143,28 @@ const resendVerification = asyncHandler(async (req, res) => {
   );
 });
 
+// ─── adminLogin ───────────────────────────────────────────────────────────────
+
+/**
+ * POST /api/v1/auth/admin/login
+ * Body (validated by adminLoginSchema): { email, password }
+ * Returns adminToken (signed with JWT_ADMIN_SECRET) and admin profile.
+ * No httpOnly cookie — admin sessions are stateless (no refresh rotation).
+ */
+const adminLogin = asyncHandler(async (req, res) => {
+  const { adminToken, admin } = await authService.adminLogin(req.body);
+
+  res.status(200).json(
+    new ApiResponse(200, 'Admin login successful.', { adminToken, admin })
+  );
+});
+
 // ─── Exports ──────────────────────────────────────────────────────────────────
 
 module.exports = {
   register,
   login,
+  adminLogin,
   logout,
   refreshToken,
   forgotPassword,

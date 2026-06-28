@@ -143,9 +143,16 @@ const resendVerificationSchema = Joi.object({
     })
 });
 
+// ─── Admin Login Schema ───────────────────────────────────────────────────────
+// Same shape as loginSchema — email + password with max-only constraint.
+// Intentionally identical so the same validation logic applies.
+
+const adminLoginSchema = loginSchema;
+
 module.exports = {
   registerSchema,
   loginSchema,
+  adminLoginSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
   verifyEmailSchema,

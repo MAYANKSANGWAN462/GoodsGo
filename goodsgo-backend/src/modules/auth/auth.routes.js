@@ -12,6 +12,7 @@ const authController                    = require('./auth.controller');
 const {
   registerSchema,
   loginSchema,
+  adminLoginSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
   verifyEmailSchema,
@@ -126,6 +127,21 @@ router.post(
   resendVerificationLimiter,
   validate(resendVerificationSchema),
   authController.resendVerification
+);
+
+/**
+ * POST /api/v1/auth/admin/login
+ * Rate limit: 10 per 15 min per IP (authLimiter) — same as user login.
+ * Validates: email, password (max only — no complexity check).
+ * Returns: adminToken (JWT signed with JWT_ADMIN_SECRET) + admin profile.
+ * No httpOnly cookie — admin sessions have no refresh mechanism; token expires in 8h.
+ * Added to resolve the gap: generateAdminToken() existed but was never called.
+ */
+router.post(
+  '/admin/login',
+  authLimiter,
+  validate(adminLoginSchema),
+  authController.adminLogin
 );
 
 module.exports = router;

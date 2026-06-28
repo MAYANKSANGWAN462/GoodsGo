@@ -2,7 +2,7 @@
 
 const { query, getClient }          = require('../../config/database');
 const { hashPassword, comparePassword } = require('../../utils/hashPassword');
-const { generateAccessToken, generateRefreshToken, verifyRefreshToken, hashToken, getRefreshTokenExpiry } = require('../../utils/generateTokens');
+const { generateAccessToken, generateRefreshToken, generateAdminToken, verifyRefreshToken, hashToken, getRefreshTokenExpiry } = require('../../utils/generateTokens');
 const { generateSecureToken, getTokenExpiry } = require('../../utils/generateOTP');
 const {
   sendVerificationEmail,
@@ -674,11 +674,77 @@ async function resendVerification(email) {
   });
 }
 
+// ─── adminLogin ───────────────────────────────────────────────────────────────
+
+/**
+ * adminLogin — Validates admin credentials and issues an admin JWT.
+ *
+ * Queries admin_users (not users) and signs the token with JWT_ADMIN_SECRET
+ * (not JWT_SECRET). The resulting token passes authenticateAdmin middleware.
+ *
+ * The JWT payload uses role: 'admin' as a type discriminator so authenticateAdmin
+ * can distinguish admin tokens from user tokens. The actual admin role level
+ * (moderator / admin / super_admin) is resolved from the DB on every protected
+ * request by authenticateAdmin's live lookup — not from the JWT payload.
+ *
+ * Timing-attack prevention: bcrypt.compare() always runs, even when the admin
+ * account is not found, matching the same pattern as login().
+ *
+ * @param {{ email: string, password: string }} credentials
+ * @returns {Promise<{ adminToken: string, admin: Object }>}
+ * @throws {ApiError} 401 on bad credentials, 403 on deactivated account
+ */
+async function adminLogin({ email, password }) {
+  const result = await query(
+    `SELECT id, email, full_name, password_hash, role, is_active
+     FROM admin_users
+     WHERE email = $1`,
+    [email]
+  );
+
+  const admin = result.rows[0] || null;
+
+  const DUMMY_HASH = '$2b$12$invalidhashusedfortimingpreventiononly123456789';
+  const hashToCompare = admin ? admin.password_hash : DUMMY_HASH;
+  const isPasswordValid = await comparePassword(password, hashToCompare);
+
+  if (!admin || !isPasswordValid) {
+    throw ApiError.unauthorized('Invalid admin credentials.');
+  }
+
+  if (!admin.is_active) {
+    throw ApiError.forbidden(
+      'This admin account has been deactivated. Please contact your system administrator.'
+    );
+  }
+
+  // JWT role is always 'admin' so authenticateAdmin can type-discriminate.
+  // The real adminRole (moderator/admin/super_admin) comes from the DB lookup
+  // in authenticateAdmin on each subsequent request.
+  const adminToken = generateAdminToken({ id: admin.id, role: 'admin' });
+
+  setImmediate(() => {
+    query('UPDATE admin_users SET last_login_at = NOW() WHERE id = $1', [admin.id])
+      .catch((err) => console.error('[Auth] adminLogin: last_login_at update failed:', err.message));
+  });
+
+  return {
+    adminToken,
+    admin: {
+      id:        admin.id,
+      email:     admin.email,
+      fullName:  admin.full_name,
+      adminRole: admin.role
+    }
+  };
+}
+
 // ─── Exports ──────────────────────────────────────────────────────────────────
 
 module.exports = {
   register,
   login,
+  adminLogin,
   logout,
   refreshAccessToken,
   verifyEmail,

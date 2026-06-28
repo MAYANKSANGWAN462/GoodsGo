@@ -269,13 +269,70 @@ GoodsGo uses **Tailwind v4 utility classes** exclusively. There is no CSS-in-JS 
 
 **File:** `src/components/common/ErrorBoundary.jsx`
 
-**Purpose:** Catches render errors in a subtree. Wrap each page-level route.
+**Purpose:** React class-based error boundary. Catches render errors in the entire subtree and shows a fallback UI instead of a blank screen. Mounted once in `AppRoutes` wrapping the whole `<Routes>` tree.
 
 **Props:**
 | Prop | Type | Description |
 |---|---|---|
-| `children` | node | |
-| `fallback` | node | Custom error UI (optional; defaults to a generic error card) |
+| `children` | node | Required. The route tree or component subtree to guard. |
+
+**Behaviour:**
+- Catches via `getDerivedStateFromError` — shows built-in fallback card (red error message + "Reload page" button).
+- Logs full error + `componentStack` at `console.error` with `[ErrorBoundary]` tag.
+- "Reload page" calls `window.location.reload()` after resetting state.
+- No `fallback` prop — uses a single built-in fallback UI. Adding a custom fallback prop is a future enhancement.
+
+---
+
+### LocationAutocomplete
+
+**File:** `src/components/location/LocationAutocomplete.jsx`
+
+**Purpose:** Controlled address input with debounced geocoding. Shows one suggestion from the `GET /location/geocode` endpoint below the field. Used in post creation/editing forms for origin and destination fields via RHF `Controller`.
+
+**Props:**
+| Prop | Type | Description |
+|---|---|---|
+| `id` | string | Required. Ties `<label>` to `<input>`. |
+| `value` | string | Required. Controlled text value (RHF `field.value`). |
+| `onChange` | func | Required. Called on every keystroke (pass RHF `field.onChange`). |
+| `onSelect` | func | Required. Called when user picks a suggestion: `(displayName, { lat, lng })`. |
+| `label` | string | Required. Field label. |
+| `placeholder` | string | Input placeholder text. |
+| `error` | string | Validation error message. |
+
+**Behaviour:**
+- Waits 400ms after the user stops typing (debounce via `useDebounce`).
+- Only fires if the typed value is ≥ 3 characters.
+- Shows a Spinner (sm) inside the input while the geocode request is in flight.
+- Shows ONE suggestion row below the field on success; nothing on null/error.
+- Suggestion click: fills `value` with `displayName`, calls `onSelect` with coordinates, closes dropdown.
+- Uses `onMouseDown` + `e.preventDefault()` on the suggestion button to prevent input blur before selection registers.
+
+**Usage with React Hook Form:**
+```jsx
+import { Controller } from 'react-hook-form';
+import LocationAutocomplete from '../location/LocationAutocomplete';
+
+<Controller
+  name="origin_address"
+  control={control}
+  render={({ field, fieldState }) => (
+    <LocationAutocomplete
+      id="origin_address"
+      label="From (city / area)"
+      placeholder="e.g. New Delhi"
+      value={field.value ?? ''}
+      onChange={field.onChange}
+      onSelect={(displayName, coords) => {
+        field.onChange(displayName);
+        setOriginCoords(coords);
+      }}
+      error={fieldState.error?.message}
+    />
+  )}
+/>
+```
 
 ---
 
