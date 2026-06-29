@@ -26,7 +26,7 @@ const getMyConversations = asyncHandler(async (req, res) => {
     new ApiResponse(
       HTTP_STATUS.OK,
       'Conversations retrieved successfully.',
-      { conversations },
+      conversations,
       meta
     )
   );
@@ -50,7 +50,7 @@ const getConversationById = asyncHandler(async (req, res) => {
     new ApiResponse(
       HTTP_STATUS.OK,
       'Conversation retrieved successfully.',
-      { conversation }
+      conversation
     )
   );
 });
@@ -77,7 +77,7 @@ const getMessages = asyncHandler(async (req, res) => {
     new ApiResponse(
       HTTP_STATUS.OK,
       'Messages retrieved successfully.',
-      { messages },
+      messages,
       meta
     )
   );
@@ -104,7 +104,7 @@ const sendMessage = asyncHandler(async (req, res) => {
     new ApiResponse(
       HTTP_STATUS.CREATED,
       'Message sent successfully.',
-      { message }
+      message
     )
   );
 });
@@ -130,7 +130,7 @@ const sendImageMessage = asyncHandler(async (req, res) => {
     new ApiResponse(
       HTTP_STATUS.CREATED,
       'Image message sent successfully.',
-      { message }
+      message
     )
   );
 });

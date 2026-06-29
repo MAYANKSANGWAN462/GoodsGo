@@ -390,6 +390,27 @@ export default function BookingDetailPage() {
               </button>
             </div>
           )}
+
+          {/* Chat shortcut — shown once a conversation exists (booking accepted) */}
+          {booking.conversation?.id && (
+            <div className="bg-surface rounded-xl border border-border p-4">
+              <h3 className="font-semibold text-text text-sm mb-2">Chat</h3>
+              <p className="text-xs text-text-muted mb-3">
+                Coordinate directly with{' '}
+                {counterparty?.fullName ?? 'the other party'} about this booking.
+              </p>
+              <Button
+                variant="secondary"
+                size="sm"
+                fullWidth
+                onClick={() =>
+                  navigate(`${ROUTES.CHAT}?conversation=${booking.conversation.id}`)
+                }
+              >
+                Open Chat
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>

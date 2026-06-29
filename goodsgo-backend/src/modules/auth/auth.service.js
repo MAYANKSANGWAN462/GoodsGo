@@ -357,7 +357,8 @@ async function refreshAccessToken(req, res) {
 
   // 5. Fetch current user state (account may have been suspended since token was issued)
   const userResult = await query(
-    `SELECT id, email, is_active, suspended_at, deleted_at
+    `SELECT id, email, full_name, profile_image_url, is_email_verified,
+            is_active, suspended_at, deleted_at, rating, total_reviews
      FROM users
      WHERE id = $1`,
     [storedToken.user_id]
@@ -397,7 +398,18 @@ async function refreshAccessToken(req, res) {
   const newAccessToken = generateAccessToken(user);
   setRefreshTokenCookie(res, newRefreshToken);
 
-  return { accessToken: newAccessToken };
+  return {
+    accessToken: newAccessToken,
+    user: {
+      id:              user.id,
+      email:           user.email,
+      fullName:        user.full_name,
+      profileImageUrl: user.profile_image_url,
+      isEmailVerified: user.is_email_verified,
+      rating:          parseFloat(user.rating) || 0,
+      totalReviews:    user.total_reviews      || 0
+    }
+  };
 }
 
 // ─── verifyEmail ──────────────────────────────────────────────────────────────

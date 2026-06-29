@@ -140,7 +140,11 @@ export default function ChatWindow({ conversationId, onBack }) {
   const isLocked =
     conversation?.status === 'locked' || conversation?.status === 'archived';
 
-  const allMessages = [...olderMessages, ...messages];
+  // API returns messages newest-first (DESC); sort ASC so oldest appears at top,
+  // newest at bottom, and messagesEndRef scrollIntoView lands on the latest message.
+  const allMessages = [...olderMessages, ...messages].sort(
+    (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
+  );
 
   return (
     <div className="flex flex-col h-full">

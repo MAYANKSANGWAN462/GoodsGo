@@ -29,8 +29,11 @@ export default function ConversationList({ conversations, isLoading, activeId, o
     <ul className="divide-y divide-border overflow-y-auto">
       {conversations.map((conv) => {
         // The backend may name the other participant 'participant' or 'otherParticipant'.
+        // The backend returns lastMessagePreview as a plain string and
+        // lastMessageAt as the ISO timestamp — not a nested object.
         const participant = conv.participant ?? conv.otherParticipant;
-        const lastMsg = conv.lastMessagePreview;
+        const previewText = conv.lastMessagePreview;
+        const lastMessageAt = conv.lastMessageAt;
         const isActive = conv.id === activeId;
         const unread = conv.unreadCount ?? 0;
 
@@ -53,18 +56,18 @@ export default function ConversationList({ conversations, isLoading, activeId, o
                   <span className="font-medium text-sm text-text truncate">
                     {participant?.fullName || 'Unknown'}
                   </span>
-                  {lastMsg?.createdAt && (
+                  {lastMessageAt && (
                     <span className="text-xs text-text-muted flex-shrink-0">
-                      {timeAgo(lastMsg.createdAt)}
+                      {timeAgo(lastMessageAt)}
                     </span>
                   )}
                 </div>
                 <div className="flex items-center justify-between gap-1 mt-0.5">
                   <p className="text-xs text-text-muted truncate">
-                    {lastMsg
-                      ? lastMsg.messageType === 'image'
+                    {previewText
+                      ? previewText === '[Image]'
                         ? '📷 Image'
-                        : lastMsg.content ?? ''
+                        : previewText
                       : 'No messages yet'}
                   </p>
                   {unread > 0 && (
@@ -96,11 +99,9 @@ ConversationList.propTypes = {
         fullName: PropTypes.string,
         profileImageUrl: PropTypes.string,
       }),
-      lastMessagePreview: PropTypes.shape({
-        content: PropTypes.string,
-        messageType: PropTypes.string,
-        createdAt: PropTypes.string,
-      }),
+      // Backend returns these as flat string + ISO timestamp (not a nested object).
+      lastMessagePreview: PropTypes.string,
+      lastMessageAt: PropTypes.string,
       unreadCount: PropTypes.number,
     })
   ),
