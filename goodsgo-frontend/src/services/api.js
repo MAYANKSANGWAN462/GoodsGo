@@ -2,7 +2,12 @@ import axios from 'axios';
 import useAuthStore from '../stores/useAuthStore';
 import useAdminStore from '../stores/useAdminStore';
 
-const BASE_URL = `${import.meta.env.VITE_API_URL}/api/v1`;
+// In local dev VITE_API_URL is empty so all requests go through the Vite
+// proxy (same origin). In production set VITE_API_URL to the deployed
+// backend URL and requests go directly.
+const BASE_URL = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}/api/v1`
+  : '/api/v1';
 
 // ── Shared response unwrapper ───────────────────────────────────────────────
 
@@ -74,7 +79,8 @@ api.interceptors.response.use(
 
     if (
       error.response?.status === 401 &&
-      !originalRequest._retry
+      !originalRequest._retry &&
+      !originalRequest.url?.includes('/auth/refresh-token')
     ) {
       if (isRefreshing) {
         // Queue the request until refresh completes.
@@ -96,7 +102,11 @@ api.interceptors.response.use(
           {},
           { withCredentials: true }
         );
-        const { accessToken, user } = res.data.data;
+        const refreshData = res.data?.data;
+        if (!refreshData?.accessToken || !refreshData?.user) {
+          throw new Error('Malformed refresh response');
+        }
+        const { accessToken, user } = refreshData;
         useAuthStore.getState().setAuth(user, accessToken);
         processQueue(null, accessToken);
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
@@ -104,8 +114,10 @@ api.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError, null);
         useAuthStore.getState().clearAuth();
-        // Redirect to login — handled without importing react-router to avoid circular deps.
-        window.location.href = '/login';
+        // Only hard-redirect if not already on /login — prevents reload loops.
+        if (!window.location.pathname.startsWith('/login')) {
+          window.location.href = '/login';
+        }
         return Promise.reject(buildError(refreshError));
       } finally {
         isRefreshing = false;

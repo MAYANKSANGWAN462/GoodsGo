@@ -28,11 +28,15 @@ app.use(
       directives: {
         defaultSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'"], // Tailwind inline styles
-        imgSrc: ["'self'", 'data:', 'https://res.cloudinary.com'], // Cloudinary images
-        scriptSrc: ["'self'"],
+        imgSrc: ["'self'", 'data:', 'https://res.cloudinary.com', 'https://*.razorpay.com'],
+        // Razorpay Standard Checkout script is loaded from checkout.razorpay.com
+        scriptSrc: ["'self'", 'https://checkout.razorpay.com'],
+        frameSrc: ["'self'", 'https://api.razorpay.com', 'https://*.razorpay.com'],
         connectSrc: [
           "'self'",
-          process.env.FRONTEND_URL || 'http://localhost:5173'
+          process.env.FRONTEND_URL || 'http://localhost:5173',
+          'https://api.razorpay.com',
+          'https://lumberjack.razorpay.com'
         ]
       }
     },

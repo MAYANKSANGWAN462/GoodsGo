@@ -50,8 +50,12 @@ function formatMessage(row) {
     id:             row.id,
     conversationId: row.conversation_id,
     senderId:       row.sender_id,
-    senderName:     row.sender_name  || null,
-    senderImage:    row.sender_image || null,
+    // Nested sender object matches the shape MessageBubble expects.
+    sender: {
+      id:              row.sender_id,
+      fullName:        row.sender_name  || null,
+      profileImageUrl: row.sender_image || null
+    },
     content:        row.content,
     messageType:    row.message_type,
     imageUrl:       row.image_url    || null,

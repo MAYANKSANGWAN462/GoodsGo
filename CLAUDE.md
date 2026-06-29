@@ -2,6 +2,11 @@
 
 This file governs how Claude Code must behave while working on the GoodsGo repository. It is not a project description — see `docs/PROJECT_CONTEXT.md` for that. This file is a set of binding engineering rules. When the two documents conflict, `PROJECT_CONTEXT.md` describes *what exists*; this file dictates *how to work on it*. Follow both. If a request from the user conflicts with this file, follow the user's explicit instruction but flag the conflict before proceeding.
 
+
+
+
+
+
 ---
 
 ## 1. Development Philosophy
@@ -43,6 +48,14 @@ These rules are non-negotiable and have been followed without exception across e
 8. **Read `docs/PROJECT_CONTEXT.md` Section 33 (Known Issues) before touching `bookings.service.js`, `adminAuth.middleware.js`, or any migration file.** There are currently two documented schema gaps (`disputes`, `admin_audit_logs` tables referenced by code but not created by any migration). Do not silently add migration files to fix this — the migration file set was explicitly locked by the project owner and any addition requires raising the conflict and getting explicit approval first (see Section 11, Database Migration Rules).
 
 ---
+
+
+   - docs/POST_BOOKING_WORKFLOW.md — canonical model for posts, bookings, payments,
+     reviews, chat scoping, and realtime sync. Treat as source of truth for who creates
+     and who books each post type.
+
+
+
 
 ## 4. Backend Guidelines
 

@@ -7,8 +7,8 @@ import { AuthProvider } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
 import { NotificationProvider } from './context/NotificationContext';
 import ProtectedRoute from './components/guards/ProtectedRoute';
+import GuestRoute from './components/guards/GuestRoute';
 import AdminRoute from './components/guards/AdminRoute';
-import AuthLayout from './components/layout/AuthLayout';
 import MainLayout from './components/layout/MainLayout';
 import AdminLayout from './components/layout/AdminLayout';
 import ErrorBoundary from './components/common/ErrorBoundary';
@@ -21,6 +21,7 @@ import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from './pages/auth/ResetPasswordPage';
+import VerifyEmailPage from './pages/auth/VerifyEmailPage';
 
 // Root pages
 import HomePage from './pages/HomePage';
@@ -115,11 +116,18 @@ function AppRoutes() {
       {/* ── Public root ──────────────────────────────────────────────── */}
       <Route path={ROUTES.HOME} element={<HomePage />} />
 
-      {/* ── Auth pages (each page imports AuthLayout directly) ────────── */}
-      <Route path={ROUTES.LOGIN} element={<LoginPage />} />
-      <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
-      <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
-      <Route path={ROUTES.RESET_PASSWORD} element={<ResetPasswordPage />} />
+      {/* ── Auth pages — wrapped in GuestRoute so logged-in users are ──── */}
+      {/* ── redirected to the marketplace instead of seeing auth forms.  ── */}
+      <Route element={<GuestRoute />}>
+        <Route path={ROUTES.LOGIN} element={<LoginPage />} />
+        <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
+        <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
+        <Route path={ROUTES.RESET_PASSWORD} element={<ResetPasswordPage />} />
+      </Route>
+
+      {/* ── Verify email — accessible regardless of auth state ──────────── */}
+      {/* ── (user may or may not be logged in when they click the link).  ── */}
+      <Route path={ROUTES.VERIFY_EMAIL} element={<VerifyEmailPage />} />
 
       {/* ── Admin login (no shell) ────────────────────────────────────── */}
       <Route path={ROUTES.ADMIN_LOGIN} element={<AdminLoginPage />} />

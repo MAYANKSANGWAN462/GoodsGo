@@ -22,6 +22,8 @@ export default function LoginPage() {
   const location = useLocation();
   const { setAuth } = useAuthStore();
   const from = location.state?.from?.pathname || ROUTES.MARKETPLACE;
+  const justRegistered = location.state?.registered === true;
+  const registeredEmail = location.state?.email ?? null;
 
   const {
     register,
@@ -47,6 +49,16 @@ export default function LoginPage() {
 
   return (
     <AuthLayout>
+      {justRegistered && (
+        <div className="mb-4 rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm text-primary">
+          <p className="font-medium">Account created!</p>
+          <p className="text-text-muted text-xs mt-0.5">
+            We sent a verification link to{registeredEmail ? ` ${registeredEmail}` : ' your email'}.
+            You can log in now — verify your email when convenient.
+          </p>
+        </div>
+      )}
+
       <h2 className="text-2xl font-bold text-text mb-6">Welcome back</h2>
 
       <form onSubmit={handleSubmit((values) => mutate(values))} noValidate className="flex flex-col gap-4">

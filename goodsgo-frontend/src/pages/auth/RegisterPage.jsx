@@ -9,8 +9,10 @@ import AuthLayout from '../../components/layout/AuthLayout';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
 import { ROUTES } from '../../constants/routes';
-import { register as registerUser } from '../../services/auth.service';
+import { register as registerUser, login } from '../../services/auth.service';
+import useAuthStore from '../../stores/useAuthStore';
 
+// Backend Joi phone pattern: /^\+?[0-9]{10,15}$/ — digits only, optional leading +
 const schema = yup.object({
   fullName: yup
     .string()
@@ -26,13 +28,17 @@ const schema = yup.object({
     .required('Password is required'),
   phone: yup
     .string()
-    .matches(/^[+]?[\d\s-]{7,15}$/, 'Enter a valid phone number')
+    .matches(/^\+?[0-9]{10,15}$/, 'Enter a valid phone number (10–15 digits, optional + prefix)')
     .optional()
     .transform((val) => (val === '' ? undefined : val)),
 });
 
+// Backend field names → React Hook Form field names
+const BACKEND_FIELD_MAP = { full_name: 'fullName' };
+
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const { setAuth } = useAuthStore();
 
   const {
     register,
@@ -42,14 +48,28 @@ export default function RegisterPage() {
   } = useForm({ resolver: yupResolver(schema) });
 
   const { mutate, isPending } = useMutation({
-    mutationFn: registerUser,
-    onSuccess: () => {
-      toast.success('Account created! Please check your email to verify your account.');
-      navigate(ROUTES.LOGIN);
+    mutationFn: async ({ fullName, email, password, phone }) => {
+      // Step 1 — create the account
+      await registerUser({
+        full_name: fullName,
+        email,
+        password,
+        ...(phone ? { phone } : {}),
+      });
+      // Step 2 — auto-login so the user doesn't have to log in manually
+      return login({ email, password });
+    },
+    onSuccess: ({ data }) => {
+      setAuth(data.user, data.accessToken);
+      toast.success('Account created! Check your inbox to verify your email.');
+      navigate(ROUTES.MARKETPLACE, { replace: true });
     },
     onError: (err) => {
       if (err.errors?.length) {
-        err.errors.forEach(({ field, message }) => setError(field, { message }));
+        err.errors.forEach(({ field, message }) => {
+          // Map snake_case backend field names to camelCase form field names
+          setError(BACKEND_FIELD_MAP[field] ?? field, { message });
+        });
       } else {
         toast.error(err.message || 'Registration failed.');
       }
@@ -60,7 +80,7 @@ export default function RegisterPage() {
     <AuthLayout>
       <h2 className="text-2xl font-bold text-text mb-6">Create your account</h2>
 
-      <form onSubmit={handleSubmit((values) => mutate(values))} noValidate className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit(mutate)} noValidate className="flex flex-col gap-4">
         <Input
           id="fullName"
           label="Full name"

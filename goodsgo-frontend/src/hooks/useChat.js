@@ -140,8 +140,11 @@ export function useConversationSocket(conversationId, { onTypingStart, onTypingS
 
   const handleNewMessage = useCallback(
     (payload) => {
+      // The backend emits the message object directly as the payload
+      // (emitToConversation calls io.to(room).emit(event, formattedMessage)).
+      // payload.conversationId is the UUID field on the message object itself.
       if (payload.conversationId !== conversationId) return;
-      const message = payload.message;
+      const message = payload;
 
       queryClient.setQueryData(['messages', conversationId], (old) => {
         if (!old) return { data: [message], meta: null };
@@ -177,14 +180,18 @@ export function useConversationSocket(conversationId, { onTypingStart, onTypingS
 
     socket.emit('join_conversation', { conversationId });
     socket.on('new_message', handleNewMessage);
-    socket.on('typing_start', handleTypingStart);
-    socket.on('typing_stop', handleTypingStop);
+    // Backend emits 'user_typing' / 'user_stopped_typing' (SOCKET_EVENTS.USER_TYPING /
+    // SOCKET_EVENTS.USER_STOPPED_TYPING in constants.js) — not 'typing_start'/'typing_stop'.
+    // The client emits 'typing_start'/'typing_stop' TO the server; the server relays
+    // them to other participants using a different event name pair.
+    socket.on('user_typing', handleTypingStart);
+    socket.on('user_stopped_typing', handleTypingStop);
 
     return () => {
       socket.emit('leave_conversation', { conversationId });
       socket.off('new_message', handleNewMessage);
-      socket.off('typing_start', handleTypingStart);
-      socket.off('typing_stop', handleTypingStop);
+      socket.off('user_typing', handleTypingStart);
+      socket.off('user_stopped_typing', handleTypingStop);
     };
   }, [socket, conversationId, handleNewMessage, handleTypingStart, handleTypingStop]);
 }

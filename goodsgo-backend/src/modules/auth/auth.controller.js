@@ -65,10 +65,10 @@ const logout = asyncHandler(async (req, res) => {
  * Returns new access token + rotates cookie.
  */
 const refreshToken = asyncHandler(async (req, res) => {
-  const { accessToken } = await authService.refreshAccessToken(req, res);
+  const { accessToken, user } = await authService.refreshAccessToken(req, res);
 
   res.status(200).json(
-    new ApiResponse(200, 'Token refreshed successfully.', { accessToken })
+    new ApiResponse(200, 'Token refreshed successfully.', { accessToken, user })
   );
 });
 
