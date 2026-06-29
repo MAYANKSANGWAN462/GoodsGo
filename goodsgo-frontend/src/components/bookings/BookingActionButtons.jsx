@@ -9,6 +9,7 @@ import Textarea from '../common/Textarea';
 import Modal from '../common/Modal';
 import ConfirmDialog from '../common/ConfirmDialog';
 import { ELIGIBLE_ACTIONS } from '../../constants/bookingStatuses';
+import RazorpayCheckoutButton from './RazorpayCheckoutButton';
 import {
   useAcceptBooking,
   useRejectBooking,
@@ -128,6 +129,12 @@ export default function BookingActionButtons({ booking, currentUserId }) {
   return (
     <>
       <div className="bg-surface rounded-xl border border-border p-4 flex flex-wrap gap-2">
+        {eligible.includes('pay') && (
+          <RazorpayCheckoutButton
+            bookingId={booking.id}
+            displayAmount={booking.agreedPrice}
+          />
+        )}
         {eligible.includes('accept') && (
           <Button size="sm" onClick={() => setAcceptOpen(true)}>
             Accept

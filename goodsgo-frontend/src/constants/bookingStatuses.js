@@ -47,7 +47,7 @@ export const ELIGIBLE_ACTIONS = {
   },
   accepted: {
     owner: ['mark_in_progress', 'cancel'],
-    requester: ['cancel'],
+    requester: ['pay', 'cancel'],
   },
   in_progress: {
     owner: ['complete', 'cancel', 'dispute'],
