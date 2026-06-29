@@ -35,9 +35,12 @@ tmp/
 temp/
 
 # Database Dumps
-*.sql
 *.sqlite
 *.sqlite3
+# Allow migration files but block raw SQL dumps
+*.dump
+# Explicitly allow migration files
+!src/db/migrations/*.sql
 
 # Runtime Files
 *.pid
