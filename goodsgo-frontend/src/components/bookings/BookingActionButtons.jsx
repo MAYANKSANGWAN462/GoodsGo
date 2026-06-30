@@ -8,7 +8,7 @@ import Input from '../common/Input';
 import Textarea from '../common/Textarea';
 import Modal from '../common/Modal';
 import ConfirmDialog from '../common/ConfirmDialog';
-import { ELIGIBLE_ACTIONS } from '../../constants/bookingStatuses';
+import { getEligibleActions } from '../../constants/bookingStatuses';
 import RazorpayCheckoutButton from './RazorpayCheckoutButton';
 import {
   useAcceptBooking,
@@ -47,7 +47,8 @@ const rejectSchema = yup.object({ reason: yup.string() });
 
 /**
  * Renders context-sensitive action buttons for a booking.
- * Only buttons valid for the current user's role and the booking's current status are shown.
+ * Only buttons valid for the current user's role, the booking's current status,
+ * and the post type are shown.
  */
 export default function BookingActionButtons({ booking, currentUserId }) {
   const [acceptOpen, setAcceptOpen] = useState(false);
@@ -73,14 +74,13 @@ export default function BookingActionButtons({ booking, currentUserId }) {
   const disputeMutation = useDisputeBooking(booking.id);
 
   const isOwner = booking.postOwner?.id === currentUserId;
-  const role = isOwner ? 'owner' : 'requester';
-  const eligible = ELIGIBLE_ACTIONS[booking.status]?.[role] ?? [];
+  const eligible = getEligibleActions(booking.status, isOwner, booking.post?.postType);
 
   if (eligible.length === 0) return null;
 
   function handleAccept(values) {
     acceptMutation.mutate(
-      { agreedPrice: Number(values.agreedPrice) },
+      { agreed_price: Number(values.agreedPrice) },
       {
         onSuccess: () => {
           setAcceptOpen(false);
@@ -371,6 +371,7 @@ BookingActionButtons.propTypes = {
     id: PropTypes.string.isRequired,
     status: PropTypes.string.isRequired,
     postOwner: PropTypes.shape({ id: PropTypes.string }),
+    post: PropTypes.shape({ postType: PropTypes.string }),
   }).isRequired,
   currentUserId: PropTypes.string,
 };

@@ -10,8 +10,12 @@ const NotificationContext = createContext(null);
 /** Notification types that warrant a toast when received in real-time. */
 const HIGH_PRIORITY_TYPES = [
   'booking_accepted',
+  'booking_rejected',
+  'booking_cancelled',
   'booking_completed',
   'dispute_raised',
+  'payment_received',
+  'payment_released',
 ];
 
 /**

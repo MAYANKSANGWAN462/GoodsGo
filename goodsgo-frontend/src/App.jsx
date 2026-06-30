@@ -15,6 +15,8 @@ import ErrorBoundary from './components/common/ErrorBoundary';
 
 import { ROUTES } from './constants/routes';
 import { getConfigOptions } from './services/config.service';
+import { useBookingStatusSocket } from './hooks/useBookings';
+import { usePaymentStatusSocket } from './hooks/usePayments';
 
 // Auth pages
 import LoginPage from './pages/auth/LoginPage';
@@ -86,7 +88,22 @@ export default function App() {
                 position="top-right"
                 toastOptions={{
                   duration: 4000,
-                  style: { fontSize: '14px' },
+                  style: {
+                    fontSize: '14px',
+                    fontFamily: "'Barlow', system-ui, sans-serif",
+                    background: 'var(--color-surface)',
+                    color: 'var(--color-text)',
+                    border: '1px solid var(--color-border)',
+                    boxShadow: '0 10px 25px -5px rgba(0,0,0,0.15)',
+                    borderRadius: '12px',
+                    padding: '12px 16px',
+                  },
+                  success: {
+                    iconTheme: { primary: '#22c55e', secondary: 'white' },
+                  },
+                  error: {
+                    iconTheme: { primary: '#ef4444', secondary: 'white' },
+                  },
                 }}
               />
               <AppRoutes />
@@ -109,6 +126,10 @@ function AppRoutes() {
     queryFn: getConfigOptions,
     staleTime: Infinity,
   });
+
+  // Global socket listeners — must live inside providers (QueryClient + SocketStore).
+  useBookingStatusSocket();
+  usePaymentStatusSocket();
 
   return (
     <ErrorBoundary>

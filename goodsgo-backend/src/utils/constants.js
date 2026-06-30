@@ -363,7 +363,10 @@ const SOCKET_EVENTS = Object.freeze({
 
   // Notifications — server to client
   NOTIFICATION: 'notification',
-  BOOKING_STATUS_CHANGED: 'booking_status_changed'
+  BOOKING_STATUS_CHANGED: 'booking_status_changed',
+  POST_STATUS_CHANGED: 'post_status_changed',
+  PAYMENT_STATUS_CHANGED: 'payment_status_changed',
+  USER_UPDATED: 'user_updated'
 });
 
 module.exports = {

@@ -1,5 +1,7 @@
+import { useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
+import useSocketStore from '../stores/useSocketStore';
 import { initiatePayment, verifyPayment } from '../services/payments.service';
 
 /**
@@ -35,4 +37,32 @@ export function useVerifyPayment() {
     onError: (err) =>
       toast.error(err.message || 'Payment verification failed. Please contact support.'),
   });
+}
+
+/**
+ * Registers a socket listener for 'payment_status_changed' events.
+ * Invalidates ['payments'] and ['booking', bookingId] so the booking detail
+ * and payment history page update without a manual refresh.
+ *
+ * Call once from a top-level component (e.g. App or a socket-aware layout).
+ */
+export function usePaymentStatusSocket() {
+  const queryClient = useQueryClient();
+  const socket = useSocketStore((s) => s.socket);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    function handlePaymentStatusChanged({ bookingId }) {
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      if (bookingId) {
+        queryClient.invalidateQueries({ queryKey: ['booking', bookingId] });
+      }
+    }
+
+    socket.on('payment_status_changed', handlePaymentStatusChanged);
+    return () => {
+      socket.off('payment_status_changed', handlePaymentStatusChanged);
+    };
+  }, [socket, queryClient]);
 }

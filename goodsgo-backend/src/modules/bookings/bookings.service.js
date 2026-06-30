@@ -1,8 +1,15 @@
 'use strict';
 
-const { query, getClient } = require('../../config/database');
-const ApiError             = require('../../utils/ApiError');
-const { BOOKING_STATUS, POST_STATUS, CONVERSATION_STATUS } = require('../../utils/constants');
+const { query, getClient }   = require('../../config/database');
+const { emitToUser }         = require('../../config/socket');
+const ApiError               = require('../../utils/ApiError');
+const {
+  BOOKING_STATUS,
+  POST_STATUS,
+  CONVERSATION_STATUS,
+  POST_TYPES,
+  SOCKET_EVENTS
+} = require('../../utils/constants');
 
 // ─── Lazy notification loader ─────────────────────────────────────────────────
 // Block I (Notifications) may not exist yet. Using lazy require prevents crash.
@@ -27,6 +34,16 @@ async function notify(payload) {
   } catch (err) {
     console.error('[Bookings] Notification error:', err.message);
   }
+}
+
+/**
+ * Emit BOOKING_STATUS_CHANGED to both parties so the frontend React Query
+ * cache can be invalidated without a manual refresh.
+ */
+function emitBookingStatusChanged(requesterId, postOwnerId, bookingId, postId, status) {
+  const payload = { bookingId, postId, status };
+  emitToUser(requesterId, SOCKET_EVENTS.BOOKING_STATUS_CHANGED, payload);
+  emitToUser(postOwnerId,  SOCKET_EVENTS.BOOKING_STATUS_CHANGED, payload);
 }
 
 // ─── Platform settings helper ─────────────────────────────────────────────────
@@ -94,12 +111,12 @@ function formatBooking(row) {
     disputedAt:           row.disputed_at         || null,
     createdAt:            row.created_at,
     updatedAt:            row.updated_at,
-    // Joined data
-    post:       row.post_title ? {
-      id:          row.post_id,
-      postType:    row.post_type,
-      originCity:  row.post_origin_city   || null,
-      destCity:    row.post_dest_city     || null
+    // Joined data — presence check uses post_type (NOT NULL on any real post JOIN)
+    post:       row.post_type ? {
+      id:              row.post_id,
+      postType:        row.post_type,
+      originCity:      row.post_origin_city   || null,
+      destinationCity: row.post_dest_city     || null
     } : undefined,
     requester:  row.requester_name ? {
       id:             row.requester_id,
@@ -200,7 +217,11 @@ async function createBooking(requesterId, data) {
     client.release();
   }
 
-  // 6. Notify post owner
+  // 6. Notify post owner + emit realtime event
+  emitToUser(post.user_id, SOCKET_EVENTS.BOOKING_STATUS_CHANGED, {
+    bookingId, postId: data.post_id, status: BOOKING_STATUS.PENDING
+  });
+
   setImmediate(() => notify({
     userId: post.user_id,
     type:   'booking_request_received',
@@ -317,7 +338,8 @@ async function acceptBooking(bookingId, postOwnerId, data) {
 
     // Lock the booking row — prevents concurrent accept calls
     const bookingResult = await client.query(
-      `SELECT b.id, b.status, b.post_id, b.requester_id, b.post_owner_id
+      `SELECT b.id, b.status, b.post_id, b.requester_id, b.post_owner_id,
+              p.post_type
        FROM bookings b
        JOIN posts p ON p.id = b.post_id
        WHERE b.id = $1
@@ -341,6 +363,8 @@ async function acceptBooking(bookingId, postOwnerId, data) {
       await client.query('ROLLBACK');
       throw new ApiError(422, `Cannot accept a booking that is currently "${booking.status}".`, null, 'INVALID_STATUS_TRANSITION');
     }
+
+    const isNeedTransport = booking.post_type === POST_TYPES.NEED_TRANSPORT;
 
     // Calculate commission split
     const agreedPrice     = parseFloat(data.agreed_price);
@@ -373,19 +397,33 @@ async function acceptBooking(bookingId, postOwnerId, data) {
       ]
     );
 
-    // Lock post as booked
-    await client.query(
-      `UPDATE posts SET status = 'booked' WHERE id = $1`,
-      [booking.post_id]
-    );
+    let otherBookings = { rows: [] };
 
-    // Auto-reject all other pending bookings for the same post
-    const otherBookings = await client.query(
-      `UPDATE bookings SET status = 'rejected', rejected_at = NOW()
-       WHERE post_id = $1 AND id != $2 AND status = 'pending'
-       RETURNING id, requester_id`,
-      [booking.post_id, bookingId]
-    );
+    if (isNeedTransport) {
+      // Single-capacity: lock the post and auto-reject all other pending requests.
+      await client.query(
+        `UPDATE posts SET status = 'booked' WHERE id = $1`,
+        [booking.post_id]
+      );
+
+      otherBookings = await client.query(
+        `UPDATE bookings SET status = 'rejected', rejected_at = NOW()
+         WHERE post_id = $1 AND id != $2 AND status = 'pending'
+         RETURNING id, requester_id`,
+        [booking.post_id, bookingId]
+      );
+
+      // History for auto-rejected bookings
+      for (const other of otherBookings.rows) {
+        await insertHistory(
+          client, other.id,
+          BOOKING_STATUS.PENDING, BOOKING_STATUS.REJECTED,
+          null, 'Auto-rejected: another booking was accepted for this post', null
+        );
+      }
+    }
+    // Vehicle-Available / Return-Journey: post stays 'active' so more shippers
+    // can book until the transporter chooses to close it. No auto-reject.
 
     // History for accepted booking
     await insertHistory(
@@ -395,20 +433,11 @@ async function acceptBooking(bookingId, postOwnerId, data) {
       { agreed_price: agreedPrice, commission_pct: commissionPct }
     );
 
-    // History for auto-rejected bookings
-    for (const other of otherBookings.rows) {
-      await insertHistory(
-        client, other.id,
-        BOOKING_STATUS.PENDING, BOOKING_STATUS.REJECTED,
-        null, 'Auto-rejected: another booking was accepted for this post', null
-      );
-    }
-
     // Create conversation
     const convResult = await client.query(
       `INSERT INTO conversations (booking_id, participant_1_id, participant_2_id, status)
        VALUES ($1, $2, $3, 'active')
-       ON CONFLICT ON CONSTRAINT uq_conversations_booking_id DO NOTHING
+       ON CONFLICT (booking_id) DO NOTHING
        RETURNING id`,
       [bookingId, booking.requester_id, postOwnerId]
     );
@@ -424,6 +453,17 @@ async function acceptBooking(bookingId, postOwnerId, data) {
 
     await client.query('COMMIT');
 
+    // Realtime: notify both parties of status change
+    emitBookingStatusChanged(
+      booking.requester_id, postOwnerId,
+      bookingId, booking.post_id, BOOKING_STATUS.ACCEPTED
+    );
+    if (isNeedTransport) {
+      emitToUser(postOwnerId, SOCKET_EVENTS.POST_STATUS_CHANGED, {
+        postId: booking.post_id, status: POST_STATUS.BOOKED
+      });
+    }
+
     // Notifications (fire-and-forget after commit)
     setImmediate(async () => {
       // Notify requester their booking was accepted
@@ -435,7 +475,7 @@ async function acceptBooking(bookingId, postOwnerId, data) {
         data:   { bookingId, postId: booking.post_id }
       });
 
-      // Notify requesters of other auto-rejected bookings
+      // Notify requesters of other auto-rejected bookings (Need-Transport only)
       for (const other of otherBookings.rows) {
         await notify({
           userId: other.requester_id,
@@ -488,6 +528,11 @@ async function rejectBooking(bookingId, postOwnerId, reason) {
     client.release();
   }
 
+  emitBookingStatusChanged(
+    booking.requester_id, booking.post_owner_id,
+    bookingId, booking.post_id, BOOKING_STATUS.REJECTED
+  );
+
   setImmediate(() => notify({
     userId: booking.requester_id,
     type:   'booking_rejected',
@@ -527,6 +572,11 @@ async function withdrawBooking(bookingId, requesterId) {
   } finally {
     client.release();
   }
+
+  emitBookingStatusChanged(
+    booking.requester_id, booking.post_owner_id,
+    bookingId, booking.post_id, BOOKING_STATUS.WITHDRAWN
+  );
 }
 
 // ─── cancelBooking ────────────────────────────────────────────────────────────
@@ -587,7 +637,14 @@ async function cancelBooking(bookingId, userId, reason) {
     client.release();
   }
 
-  // Notify the other party
+  emitBookingStatusChanged(
+    booking.requester_id, booking.post_owner_id,
+    bookingId, booking.post_id, BOOKING_STATUS.CANCELLED
+  );
+  emitToUser(booking.post_owner_id, SOCKET_EVENTS.POST_STATUS_CHANGED, {
+    postId: booking.post_id, status: POST_STATUS.ACTIVE
+  });
+
   const otherUserId = userId === booking.requester_id ? booking.post_owner_id : booking.requester_id;
   setImmediate(() => notify({
     userId: otherUserId,
@@ -600,15 +657,28 @@ async function cancelBooking(bookingId, userId, reason) {
 
 // ─── markInProgress ──────────────────────────────────────────────────────────
 
-async function markInProgress(bookingId, postOwnerId) {
+async function markInProgress(bookingId, actorId) {
   const result = await query(
-    `SELECT id, status, post_id, requester_id, post_owner_id FROM bookings WHERE id = $1`,
+    `SELECT b.id, b.status, b.post_id, b.requester_id, b.post_owner_id, p.post_type
+     FROM bookings b
+     JOIN posts p ON p.id = b.post_id
+     WHERE b.id = $1`,
     [bookingId]
   );
   if (result.rows.length === 0) throw ApiError.notFound('Booking');
 
   const booking = result.rows[0];
-  if (booking.post_owner_id !== postOwnerId) throw ApiError.forbidden('Only the post owner can mark a booking as in progress.');
+
+  // For Need-Transport: the transporter is the requester — they mark pickup.
+  // For Vehicle-Available / Return-Journey: the transporter is the post owner.
+  const isNeedTransport = booking.post_type === POST_TYPES.NEED_TRANSPORT;
+  const validActor = isNeedTransport ? booking.requester_id : booking.post_owner_id;
+
+  if (actorId !== validActor) {
+    const who = isNeedTransport ? 'the transporter (requester)' : 'the post owner (transporter)';
+    throw ApiError.forbidden(`Only ${who} can mark a booking as in progress.`);
+  }
+
   if (booking.status !== BOOKING_STATUS.ACCEPTED) {
     throw new ApiError(422, `Cannot mark as in-progress when booking is "${booking.status}".`, null, 'INVALID_STATUS_TRANSITION');
   }
@@ -620,7 +690,7 @@ async function markInProgress(bookingId, postOwnerId) {
       `UPDATE bookings SET status = 'in_progress', in_progress_at = NOW() WHERE id = $1`,
       [bookingId]
     );
-    await insertHistory(client, bookingId, BOOKING_STATUS.ACCEPTED, BOOKING_STATUS.IN_PROGRESS, postOwnerId, null, null);
+    await insertHistory(client, bookingId, BOOKING_STATUS.ACCEPTED, BOOKING_STATUS.IN_PROGRESS, actorId, null, null);
     await client.query('COMMIT');
   } catch (err) {
     await client.query('ROLLBACK');
@@ -628,19 +698,37 @@ async function markInProgress(bookingId, postOwnerId) {
   } finally {
     client.release();
   }
+
+  emitBookingStatusChanged(
+    booking.requester_id, booking.post_owner_id,
+    bookingId, booking.post_id, BOOKING_STATUS.IN_PROGRESS
+  );
 }
 
 // ─── completeBooking ─────────────────────────────────────────────────────────
 
-async function completeBooking(bookingId, postOwnerId) {
+async function completeBooking(bookingId, actorId) {
   const result = await query(
-    `SELECT id, status, post_id, requester_id, post_owner_id FROM bookings WHERE id = $1`,
+    `SELECT b.id, b.status, b.post_id, b.requester_id, b.post_owner_id, p.post_type
+     FROM bookings b
+     JOIN posts p ON p.id = b.post_id
+     WHERE b.id = $1`,
     [bookingId]
   );
   if (result.rows.length === 0) throw ApiError.notFound('Booking');
 
   const booking = result.rows[0];
-  if (booking.post_owner_id !== postOwnerId) throw ApiError.forbidden('Only the post owner can mark a booking as complete.');
+
+  // The Shipper confirms completion. For Need-Transport, shipper = post_owner.
+  // For Vehicle-Available / Return-Journey, shipper = requester.
+  const isNeedTransport = booking.post_type === POST_TYPES.NEED_TRANSPORT;
+  const validActor = isNeedTransport ? booking.post_owner_id : booking.requester_id;
+
+  if (actorId !== validActor) {
+    const who = isNeedTransport ? 'the shipper (post owner)' : 'the shipper (requester)';
+    throw ApiError.forbidden(`Only ${who} can confirm completion of this booking.`);
+  }
+
   if (booking.status !== BOOKING_STATUS.IN_PROGRESS) {
     throw new ApiError(422, `Cannot complete a booking that is currently "${booking.status}".`, null, 'INVALID_STATUS_TRANSITION');
   }
@@ -676,7 +764,7 @@ async function completeBooking(bookingId, postOwnerId) {
       [autoReleaseAt, bookingId]
     );
 
-    await insertHistory(client, bookingId, BOOKING_STATUS.IN_PROGRESS, BOOKING_STATUS.COMPLETED, postOwnerId, null, null);
+    await insertHistory(client, bookingId, BOOKING_STATUS.IN_PROGRESS, BOOKING_STATUS.COMPLETED, actorId, null, null);
 
     await client.query('COMMIT');
   } catch (err) {
@@ -686,7 +774,14 @@ async function completeBooking(bookingId, postOwnerId) {
     client.release();
   }
 
-  // Notify both parties
+  emitBookingStatusChanged(
+    booking.requester_id, booking.post_owner_id,
+    bookingId, booking.post_id, BOOKING_STATUS.COMPLETED
+  );
+  emitToUser(booking.post_owner_id, SOCKET_EVENTS.POST_STATUS_CHANGED, {
+    postId: booking.post_id, status: POST_STATUS.COMPLETED
+  });
+
   setImmediate(async () => {
     await notify({
       userId: booking.requester_id,
@@ -748,7 +843,11 @@ async function raiseDispute(bookingId, userId, reason, description) {
     client.release();
   }
 
-  // Notify the other party
+  emitBookingStatusChanged(
+    booking.requester_id, booking.post_owner_id,
+    bookingId, booking.post_id, BOOKING_STATUS.DISPUTED
+  );
+
   const otherUserId = userId === booking.requester_id ? booking.post_owner_id : booking.requester_id;
   setImmediate(() => notify({
     userId: otherUserId,

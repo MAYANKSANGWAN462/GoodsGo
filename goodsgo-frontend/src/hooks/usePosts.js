@@ -133,6 +133,7 @@ export function useUpdatePost(postId) {
     mutationFn: (formData) => updatePost(postId, formData),
     onSuccess: (post) => {
       queryClient.invalidateQueries({ queryKey: ['post', postId] });
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
       queryClient.invalidateQueries({ queryKey: ['my-posts'] });
       toast.success('Post updated successfully!');
       const id = post?.id ?? postId;

@@ -2,6 +2,7 @@ import { createContext, useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { useQueryClient } from '@tanstack/react-query';
 import useAuthStore from '../stores/useAuthStore';
+import useSocketStore from '../stores/useSocketStore';
 import { refreshToken } from '../services/auth.service';
 import { logout as logoutService } from '../services/auth.service';
 
@@ -18,6 +19,9 @@ export const AuthContext = createContext(null);
  */
 export function AuthProvider({ children }) {
   const { setAuth, clearAuth } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
+  const accessToken = useAuthStore((s) => s.accessToken);
+  const socket = useSocketStore((s) => s.socket);
   const queryClient = useQueryClient();
   const didSilentRefresh = useRef(false);
   const [isInitializing, setIsInitializing] = useState(true);
@@ -41,6 +45,22 @@ export function AuthProvider({ children }) {
         setIsInitializing(false);
       });
   }, [setAuth, clearAuth]);
+
+  // Listen for server-pushed profile changes (e.g. email verified) so banners
+  // disappear immediately without requiring a page refresh.
+  useEffect(() => {
+    if (!socket || !user) return;
+
+    function handleUserUpdated(data) {
+      if (data.userId !== user.id) return;
+      setAuth({ ...user, ...data }, accessToken);
+    }
+
+    socket.on('user_updated', handleUserUpdated);
+    return () => {
+      socket.off('user_updated', handleUserUpdated);
+    };
+  }, [socket, user, accessToken, setAuth]);
 
   async function handleLogout() {
     try {

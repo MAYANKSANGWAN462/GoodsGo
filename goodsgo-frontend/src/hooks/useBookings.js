@@ -1,9 +1,12 @@
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
+import useSocketStore from '../stores/useSocketStore';
 import {
   createBooking,
   getBookings,
   getBookingById,
+  getPostBookings,
   acceptBooking,
   rejectBooking,
   withdrawBooking,
@@ -198,4 +201,48 @@ export function useDisputeBooking(bookingId) {
     },
     onError: (err) => toast.error(err.message || 'Failed to file dispute.'),
   });
+}
+
+/**
+ * React Query hook to fetch all booking requests on a post (post owner only).
+ * Used by PostDetailPage to render the incoming requests panel.
+ * @param {string|undefined} postId
+ * @returns {import('@tanstack/react-query').UseQueryResult<{ data: Array, meta: object }>}
+ */
+export function usePostBookings(postId) {
+  return useQuery({
+    queryKey: ['post-bookings', postId],
+    queryFn: () => getPostBookings(postId),
+    enabled: Boolean(postId),
+  });
+}
+
+/**
+ * Registers a socket listener for 'booking_status_changed' events.
+ * Invalidates ['booking', bookingId], ['bookings'], ['post', postId], and
+ * ['post-bookings', postId] so all relevant UI updates without a manual refresh.
+ *
+ * Call once from a top-level component (e.g. App or a socket-aware layout).
+ */
+export function useBookingStatusSocket() {
+  const queryClient = useQueryClient();
+  const socket = useSocketStore((s) => s.socket);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    function handleBookingStatusChanged({ bookingId, postId }) {
+      queryClient.invalidateQueries({ queryKey: ['booking', bookingId] });
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      if (postId) {
+        queryClient.invalidateQueries({ queryKey: ['post', postId] });
+        queryClient.invalidateQueries({ queryKey: ['post-bookings', postId] });
+      }
+    }
+
+    socket.on('booking_status_changed', handleBookingStatusChanged);
+    return () => {
+      socket.off('booking_status_changed', handleBookingStatusChanged);
+    };
+  }, [socket, queryClient]);
 }

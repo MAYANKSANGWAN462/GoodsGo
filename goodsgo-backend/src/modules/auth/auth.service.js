@@ -10,6 +10,8 @@ const {
   sendWelcomeEmail
 } = require('../../utils/sendEmail');
 const ApiError = require('../../utils/ApiError');
+const { emitToUser }    = require('../../config/socket');
+const { SOCKET_EVENTS } = require('../../utils/constants');
 
 // ─── Cookie Helpers ───────────────────────────────────────────────────────────
 
@@ -480,7 +482,18 @@ async function verifyEmail(token) {
     client.release();
   }
 
-  // 5. Send welcome email (async — does not block response)
+  // 5. Notify the user's own socket connection so every "Verify Email" banner
+  //    disappears immediately without requiring a page refresh.
+  try {
+    emitToUser(verification.user_id, SOCKET_EVENTS.USER_UPDATED, {
+      userId:          verification.user_id,
+      isEmailVerified: true
+    });
+  } catch (socketErr) {
+    console.warn('[Auth] verifyEmail: Socket emission failed:', socketErr.message);
+  }
+
+  // 6. Send welcome email (async — does not block response)
   setImmediate(async () => {
     try {
       const userResult = await query(
