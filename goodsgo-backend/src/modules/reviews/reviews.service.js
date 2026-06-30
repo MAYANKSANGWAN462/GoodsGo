@@ -8,7 +8,8 @@ const {
   BOOKING_STATUS,
   REVIEW_ROLES,
   NOTIFICATION_TYPES,
-  PLATFORM_SETTINGS
+  PLATFORM_SETTINGS,
+  POST_TYPES
 }                              = require('../../utils/constants');
 
 // ─── Lazy notification loader ─────────────────────────────────────────────────
@@ -81,19 +82,27 @@ async function getPlatformSetting(key, defaultValue) {
  */
 function formatReview(row) {
   return {
-    id:            row.id,
-    bookingId:     row.booking_id,
-    reviewerId:    row.reviewer_id,
-    reviewerName:  row.reviewer_name  || null,
-    reviewerImage: row.reviewer_image || null,
-    revieweeId:    row.reviewee_id,
-    revieweeName:  row.reviewee_name  || null,
-    rating:        row.rating,
-    comment:       row.comment        || null,
-    reviewRole:    row.review_role,
-    isVisible:     row.is_visible,
-    createdAt:     row.created_at,
-    updatedAt:     row.updated_at
+    id:         row.id,
+    bookingId:  row.booking_id,
+    reviewerId: row.reviewer_id,
+    revieweeId: row.reviewee_id,
+    rating:     row.rating,
+    comment:    row.comment     || null,
+    reviewRole: row.review_role,
+    isVisible:  row.is_visible,
+    createdAt:  row.created_at,
+    updatedAt:  row.updated_at,
+    // Nested reviewer — populated when the query JOINs rv_er (getBookingReviews, getUserReviews).
+    reviewer: (row.reviewer_name || row.reviewer_image) ? {
+      id:              row.reviewer_id,
+      fullName:        row.reviewer_name  || null,
+      profileImageUrl: row.reviewer_image || null,
+    } : undefined,
+    // Nested reviewee — populated when the query JOINs rv_ee (getBookingReviews, getMyReviews).
+    reviewee: row.reviewee_name ? {
+      id:       row.reviewee_id,
+      fullName: row.reviewee_name || null,
+    } : undefined,
   };
 }
 
@@ -124,9 +133,12 @@ function formatReview(row) {
  * @throws {ApiError} 409 if reviewer already submitted a review in this role
  */
 async function createReview(bookingId, reviewerId, rating, comment, reviewRole) {
-  // 1. Fetch booking
+  // 1. Fetch booking + post_type (needed for role resolution)
   const bookingResult = await query(
-    'SELECT id, requester_id, post_owner_id, status FROM bookings WHERE id = $1',
+    `SELECT b.id, b.requester_id, b.post_owner_id, b.status, p.post_type
+     FROM bookings b
+     JOIN posts p ON p.id = b.post_id
+     WHERE b.id = $1`,
     [bookingId]
   );
   if (bookingResult.rows.length === 0) {
@@ -147,28 +159,35 @@ async function createReview(bookingId, reviewerId, rating, comment, reviewRole) 
     throw ApiError.forbidden('You are not a party to this booking.');
   }
 
-  // 4. Determine revieweeId and enforce role/party consistency
+  // 4. Determine revieweeId and enforce role/party consistency.
   //    review_role identifies WHAT ROLE THE REVIEWEE PLAYED, not the reviewer.
+  //    The mapping of "who is shipper/transporter" depends on post_type:
+  //      Need-Transport: post_owner = Shipper (customer), requester = Transporter
+  //      Vehicle-Available / Return-Journey: post_owner = Transporter, requester = Shipper (customer)
+  const isNeedTransport = booking.post_type === POST_TYPES.NEED_TRANSPORT;
+  const shipperId    = isNeedTransport ? booking.post_owner_id : booking.requester_id;
+  const transporterId = isNeedTransport ? booking.requester_id : booking.post_owner_id;
+
   let revieweeId;
   if (reviewRole === REVIEW_ROLES.AS_CUSTOMER) {
-    // Reviewing the customer (requester) → only the transporter (post_owner) may do this
-    if (reviewerId !== booking.post_owner_id) {
+    // Reviewee played the customer (Shipper) role — only the transporter may submit this.
+    if (reviewerId !== transporterId) {
       throw ApiError.forbidden(
-        'Only the transporter (post owner) may submit a review with role as_customer.',
+        'Only the transporter may submit a review in the as_customer role.',
         'WRONG_REVIEW_ROLE'
       );
     }
-    revieweeId = booking.requester_id;
+    revieweeId = shipperId;
   } else {
-    // REVIEW_ROLES.AS_TRANSPORTER
-    // Reviewing the transporter (post_owner) → only the requester may do this
-    if (reviewerId !== booking.requester_id) {
+    // REVIEW_ROLES.AS_TRANSPORTER — reviewee played the transporter role.
+    // Only the shipper may submit this.
+    if (reviewerId !== shipperId) {
       throw ApiError.forbidden(
-        'Only the requester may submit a review with role as_transporter.',
+        'Only the shipper may submit a review in the as_transporter role.',
         'WRONG_REVIEW_ROLE'
       );
     }
-    revieweeId = booking.post_owner_id;
+    revieweeId = transporterId;
   }
 
   // 5. INSERT — compound unique index (booking_id, reviewer_id, review_role) prevents duplicates

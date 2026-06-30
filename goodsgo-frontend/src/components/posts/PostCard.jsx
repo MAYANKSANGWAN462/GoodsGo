@@ -5,6 +5,7 @@ import Avatar from '../common/Avatar';
 import PostTypeBadge from './PostTypeBadge';
 import { formatDate, formatCurrency } from '../../utils/formatters';
 import { buildRoute, ROUTES } from '../../constants/routes';
+import useAuthStore from '../../stores/useAuthStore';
 
 function TruckIcon() {
   return (
@@ -16,9 +17,15 @@ function TruckIcon() {
 
 export default function PostCard({ post }) {
   const navigate = useNavigate();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   function handleClick() {
     navigate(buildRoute(ROUTES.POST_DETAIL, { id: post.id }));
+  }
+
+  function handleChatClick(e) {
+    e.stopPropagation();
+    navigate(ROUTES.CHAT);
   }
 
   return (
@@ -65,7 +72,7 @@ export default function PostCard({ post }) {
           </p>
         )}
 
-        {/* Owner footer */}
+        {/* Owner footer + chat shortcut */}
         {post.owner && (
           <div className="flex items-center gap-2 pt-2 mt-auto border-t border-border">
             <Avatar
@@ -73,7 +80,19 @@ export default function PostCard({ post }) {
               name={post.owner.fullName}
               size="xs"
             />
-            <span className="text-xs text-text-muted truncate">{post.owner.fullName}</span>
+            <span className="text-xs text-text-muted truncate flex-1">{post.owner.fullName}</span>
+            {isAuthenticated && (
+              <button
+                onClick={handleChatClick}
+                title="Open Messages"
+                className="text-text-muted hover:text-primary transition-colors p-0.5 rounded flex-shrink-0"
+                aria-label="Open Messages"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.25 12.76c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 011.037-.443 48.282 48.282 0 005.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+                </svg>
+              </button>
+            )}
           </div>
         )}
       </div>

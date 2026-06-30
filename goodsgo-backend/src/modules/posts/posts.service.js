@@ -7,9 +7,32 @@ const ApiError                = require('../../utils/ApiError');
 const {
   POST_TYPES,
   POST_STATUS,
+  BOOKING_STATUS,
+  NOTIFICATION_TYPES,
   ALLOWED_POST_SORT_COLUMNS,
   SORT_ORDERS
 }                              = require('../../utils/constants');
+
+// ─── Lazy notification loader ─────────────────────────────────────────────────
+// Same resilient lazy-require pattern as bookings.service.js §3.7.
+let _notifService = null;
+function getNotifService() {
+  if (_notifService) return _notifService;
+  try { _notifService = require('../notifications/notifications.service'); return _notifService; }
+  catch { return null; }
+}
+
+/**
+ * notify — Fire-and-forget notification dispatch. Errors are logged, not re-thrown.
+ * @param {object} payload
+ * @returns {Promise<void>}
+ */
+async function notify(payload) {
+  const svc = getNotifService();
+  if (!svc) return;
+  try { await svc.createNotification(payload); }
+  catch (err) { console.error('[Posts] Notification error:', err.message); }
+}
 
 // ─── Settings helpers ─────────────────────────────────────────────────────────
 
@@ -88,7 +111,8 @@ function formatPost(row, requestingUserId = null) {
       profileImageUrl:    row.owner_profile_image_url || null,
       isIdentityVerified: row.owner_is_identity_verified || false,
       rating:             parseFloat(row.owner_rating) || 0,
-      totalReviews:       row.owner_total_reviews || 0
+      totalReviews:       row.owner_total_reviews || 0,
+      memberSince:        row.owner_created_at || null
     },
 
     isOwner:   requestingUserId ? row.owner_id === requestingUserId : false,
@@ -110,6 +134,7 @@ const POST_SELECT = `
   u.is_identity_verified AS owner_is_identity_verified,
   u.rating        AS owner_rating,
   u.total_reviews AS owner_total_reviews,
+  u.created_at    AS owner_created_at,
   COALESCE(
     json_agg(pi.image_url ORDER BY pi.display_order ASC)
     FILTER (WHERE pi.id IS NOT NULL),
@@ -519,6 +544,26 @@ async function updatePost(postId, userId, data, newFiles = []) {
 
 // ─── deletePost ───────────────────────────────────────────────────────────────
 
+/**
+ * deletePost — Soft-deletes a post owned by userId.
+ *
+ * Side effects (atomic, in the same transaction):
+ *   - All pending bookings for this post are rejected.
+ *   - A booking_status_history row is inserted for each rejected booking.
+ * Side effects (fire-and-forget after commit):
+ *   - Each requester whose pending booking was rejected receives a notification.
+ *   - Cloudinary images are deleted.
+ *
+ * Blocked if the post is currently 'booked' (accepted booking exists).
+ * The caller must cancel the active booking first.
+ *
+ * @param {string} postId
+ * @param {string} userId - Must be the post owner
+ * @returns {Promise<void>}
+ * @throws {ApiError} 404 if post not found
+ * @throws {ApiError} 403 if userId is not the owner
+ * @throws {ApiError} 422 if post has an active booking
+ */
 async function deletePost(postId, userId) {
   const result = await query(
     `SELECT id, user_id, status FROM posts
@@ -543,12 +588,70 @@ async function deletePost(postId, userId) {
     );
   }
 
-  await query(
-    `UPDATE posts SET deleted_at = NOW(), status = 'deleted' WHERE id = $1`,
-    [postId]
+  // Fetch pending bookings before opening the transaction (read-only snapshot).
+  const pendingResult = await query(
+    `SELECT id, requester_id FROM bookings
+     WHERE post_id = $1 AND status = $2`,
+    [postId, BOOKING_STATUS.PENDING]
   );
+  const pendingBookings = pendingResult.rows;
 
-  // Delete Cloudinary images asynchronously
+  // Transactional: soft-delete the post + reject all pending bookings atomically.
+  const client = await getClient();
+  try {
+    await client.query('BEGIN');
+
+    await client.query(
+      `UPDATE posts SET deleted_at = NOW(), status = 'deleted' WHERE id = $1`,
+      [postId]
+    );
+
+    if (pendingBookings.length > 0) {
+      const bookingIds = pendingBookings.map(b => b.id);
+
+      await client.query(
+        `UPDATE bookings SET status = 'rejected', rejected_at = NOW()
+         WHERE post_id = $1 AND status = 'pending'`,
+        [postId]
+      );
+
+      // Bulk-insert one history row per rejected booking using unnest.
+      await client.query(
+        `INSERT INTO booking_status_history
+           (booking_id, from_status, to_status, changed_by, reason)
+         SELECT unnest($1::uuid[]), $2, $3, $4, $5`,
+        [
+          bookingIds,
+          BOOKING_STATUS.PENDING,
+          BOOKING_STATUS.REJECTED,
+          userId,
+          'Post deleted by owner'
+        ]
+      );
+    }
+
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+
+  // Notify affected requesters (fire-and-forget — never re-thrown).
+  if (pendingBookings.length > 0) {
+    setImmediate(() => {
+      pendingBookings.forEach(b => notify({
+        userId: b.requester_id,
+        type:   NOTIFICATION_TYPES.BOOKING_REJECTED,
+        title:  'Booking request cancelled',
+        body:   'The post you requested has been deleted by the owner.',
+        data:   { postId }
+      }));
+    });
+  }
+
+  // Delete Cloudinary images asynchronously (best-effort, never re-thrown).
   setImmediate(async () => {
     try {
       const images = await query(

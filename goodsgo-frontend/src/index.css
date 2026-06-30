@@ -1,29 +1,220 @@
 @import "tailwindcss";
 
+/* ─── Dark-mode variant: toggle by .dark class on <html> ───────────── */
+@variant dark (&:where(.dark, .dark *));
+
+/* ─────────────────────────────────────────────────────────────────────
+   DESIGN TOKENS
+   All utilities that reference these variables (bg-surface, text-text,
+   border-border, etc.) will automatically adapt when .dark is applied.
+───────────────────────────────────────────────────────────────────── */
 @theme {
-  /* Brand: Go Red (#D31905) · Freight Blue (#003082) */
-  --color-primary: #D31905;
-  --color-primary-dark: #a81404;
-  --color-secondary: #003082;
-  --color-secondary-dark: #002260;
-  --color-surface: #ffffff;
-  --color-surface-alt: #f9fafb;
-  --color-border: #e5e7eb;
-  --color-text: #16130F;
-  --color-text-muted: #6b7280;
-  --color-danger: #ef4444;
-  --color-success: #22c55e;
-  --color-warning: #f59e0b;
+  /* Brand */
+  --color-primary:          #D31905;
+  --color-primary-dark:     #a81404;
+  --color-primary-light:    #ff3d20;
+  --color-secondary:        #003082;
+  --color-secondary-dark:   #002260;
+  --color-secondary-light:  #0047bb;
+
+  /* Surfaces (light defaults) */
+  --color-surface:          #ffffff;
+  --color-surface-alt:      #f8fafc;
+  --color-surface-raised:   #ffffff;
+
+  /* Borders */
+  --color-border:           #e2e8f0;
+  --color-border-strong:    #cbd5e1;
+
+  /* Text */
+  --color-text:             #0f172a;
+  --color-text-muted:       #64748b;
+  --color-text-subtle:      #94a3b8;
+
+  /* Status */
+  --color-danger:           #ef4444;
+  --color-danger-subtle:    #fef2f2;
+  --color-success:          #22c55e;
+  --color-success-subtle:   #f0fdf4;
+  --color-warning:          #f59e0b;
+  --color-warning-subtle:   #fffbeb;
+  --color-info:             #3b82f6;
+  --color-info-subtle:      #eff6ff;
+
+  /* Interactive overlays */
+  --color-overlay:          rgba(0, 0, 0, 0.04);
+  --color-overlay-strong:   rgba(0, 0, 0, 0.08);
 }
 
-* {
+/* ─────────────────────────────────────────────────────────────────────
+   DARK MODE OVERRIDES
+   Swap the semantic CSS variables; all Tailwind utilities that reference
+   them (bg-surface, text-text, border-border …) automatically adapt.
+───────────────────────────────────────────────────────────────────── */
+.dark {
+  --color-surface:          #0f1117;
+  --color-surface-alt:      #161b2e;
+  --color-surface-raised:   #1e2438;
+
+  --color-border:           #2d3650;
+  --color-border-strong:    #3d4b6b;
+
+  --color-text:             #f1f5f9;
+  --color-text-muted:       #94a3b8;
+  --color-text-subtle:      #64748b;
+
+  --color-danger-subtle:    #2d1515;
+  --color-success-subtle:   #142d1e;
+  --color-warning-subtle:   #2d2010;
+  --color-info-subtle:      #112036;
+
+  --color-overlay:          rgba(255, 255, 255, 0.05);
+  --color-overlay-strong:   rgba(255, 255, 255, 0.10);
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   THEME TRANSITION
+   Momentarily added by useThemeStore while switching themes.
+───────────────────────────────────────────────────────────────────── */
+.theme-transitioning,
+.theme-transitioning *,
+.theme-transitioning *::before,
+.theme-transitioning *::after {
+  transition:
+    background-color 220ms ease,
+    color 220ms ease,
+    border-color 220ms ease,
+    box-shadow 220ms ease !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   BASE STYLES
+───────────────────────────────────────────────────────────────────── */
+*, *::before, *::after {
   box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
 }
 
 body {
   margin: 0;
   font-family: 'Barlow', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background-color: #f9fafb;
-  color: #16130F;
+  font-size: 0.9375rem; /* 15px */
+  line-height: 1.6;
+  background-color: var(--color-surface-alt);
+  color: var(--color-text);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   CUSTOM SCROLLBAR (webkit)
+───────────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-subtle);
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   FOCUS RING RESET
+   Remove UA outline; components provide their own focus-visible ring.
+───────────────────────────────────────────────────────────────────── */
+:focus {
+  outline: none;
+}
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   ANIMATION UTILITIES
+───────────────────────────────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(-16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes shimmer {
+  from { background-position: -200% 0; }
+  to   { background-position: 200% 0; }
+}
+
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
+.animate-fade-in      { animation: fadeIn 200ms ease forwards; }
+.animate-fade-in-up   { animation: fadeInUp 220ms ease forwards; }
+.animate-fade-in-down { animation: fadeInDown 220ms ease forwards; }
+.animate-scale-in     { animation: scaleIn 200ms ease forwards; }
+.animate-slide-right  { animation: slideInRight 220ms ease forwards; }
+.animate-slide-left   { animation: slideInLeft 220ms ease forwards; }
+
+/* ─────────────────────────────────────────────────────────────────────
+   SKELETON SHIMMER
+───────────────────────────────────────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-border) 25%,
+    var(--color-surface-raised) 50%,
+    var(--color-border) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 0.5rem;
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   MOBILE SAFE-AREA SPACING
+   Gives the bottom nav breathing room on notched devices.
+───────────────────────────────────────────────────────────────────── */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Bottom-nav spacing: push page content above the fixed nav bar */
+.has-bottom-nav {
+  padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
 }

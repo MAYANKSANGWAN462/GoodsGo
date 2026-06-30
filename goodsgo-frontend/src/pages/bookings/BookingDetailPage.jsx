@@ -72,12 +72,22 @@ export default function BookingDetailPage() {
   const counterparty = isOwner ? booking.requester : booking.postOwner;
   const counterpartyLabel = isOwner ? 'Requester' : 'Post Owner';
 
-  // Derive review context from booking parties
-  const reviewRole = isOwner ? 'as_transporter' : 'as_customer';
-  const revieweeId = isOwner ? booking.requester?.id : booking.postOwner?.id;
+  // Resolve shipper / transporter contextually from post type.
+  // need_transport: post_owner = Shipper, requester = Transporter.
+  // vehicle_available / return_journey: post_owner = Transporter, requester = Shipper.
+  const postType = booking.post?.postType;
+  const isNeedTransport = postType === 'need_transport';
+  const shipperId     = isNeedTransport ? booking.postOwner?.id : booking.requester?.id;
+  const transporterId = isNeedTransport ? booking.requester?.id : booking.postOwner?.id;
+  const isShipper = user?.id === shipperId;
+
+  // review_role describes what role the REVIEWEE played.
+  // Shipper reviews the transporter (as_transporter); transporter reviews the shipper (as_customer).
+  const reviewRole  = isShipper ? 'as_transporter' : 'as_customer';
+  const revieweeId  = isShipper ? transporterId : shipperId;
   const bookingReviews = bookingReviewsData?.data ?? [];
   const currentUserHasReviewed =
-    Boolean(user) && bookingReviews.some((r) => r.reviewer?.id === user.id);
+    Boolean(user) && bookingReviews.some((r) => (r.reviewer?.id ?? r.reviewerId) === user.id);
 
   const routeLabel =
     [booking.post?.originCity, booking.post?.destinationCity].filter(Boolean).join(' → ') || '—';
@@ -105,13 +115,42 @@ export default function BookingDetailPage() {
           order_id: orderData.orderId,
           name: 'GoodsGo',
           description: 'Booking payment',
-          prefill: { name: user?.fullName || '' },
+          prefill: {
+            name:    user?.fullName    || '',
+            email:   user?.email       || '',
+            contact: user?.phoneNumber || '',
+          },
+          notes: { booking_id: bookingId },
           theme: { color: '#f97316' },
+          // Explicitly list payment blocks so UPI appears first.
+          // show_default_blocks: false suppresses Razorpay's auto-selection
+          // and uses only the blocks defined below.
+          config: {
+            display: {
+              blocks: {
+                upi: {
+                  name: 'Pay via UPI',
+                  instruments: [{ method: 'upi' }],
+                },
+                other: {
+                  name: 'Other Methods',
+                  instruments: [
+                    { method: 'card' },
+                    { method: 'netbanking' },
+                    { method: 'wallet' },
+                    { method: 'paylater' },
+                  ],
+                },
+              },
+              sequence: ['block.upi', 'block.other'],
+              preferences: { show_default_blocks: false },
+            },
+          },
           handler: function (response) {
             verifyPayment(
               {
                 bookingId,
-                orderId: response.razorpay_order_id,
+                orderId:   response.razorpay_order_id,
                 paymentId: response.razorpay_payment_id,
                 signature: response.razorpay_signature,
               },
@@ -120,6 +159,7 @@ export default function BookingDetailPage() {
               }
             );
           },
+          modal: { ondismiss: function () {} },
         };
         new window.Razorpay(options).open();
       },
@@ -294,14 +334,14 @@ export default function BookingDetailPage() {
                     </p>
                   </div>
                 </div>
-              ) : isOwner ? (
-                /* Post owner view — waiting for requester to pay */
+              ) : !isShipper ? (
+                /* Transporter view — waiting for the shipper to pay */
                 <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                   <span className="text-xl flex-shrink-0">⏳</span>
                   <div>
                     <p className="text-sm font-medium text-amber-800">Awaiting payment</p>
                     <p className="text-xs text-amber-700 mt-0.5">
-                      Waiting for the requester to complete the payment.
+                      Waiting for the shipper to complete the payment.
                       {booking.paymentDeadline && (
                         <> Payment is due by {formatDate(booking.paymentDeadline)}.</>
                       )}
@@ -309,7 +349,7 @@ export default function BookingDetailPage() {
                   </div>
                 </div>
               ) : (
-                /* Requester view — pay now */
+                /* Shipper view — pay now (payment always flows Shipper → Transporter) */
                 <div className="flex flex-col gap-4">
                   <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                     {booking.agreedPrice != null && (

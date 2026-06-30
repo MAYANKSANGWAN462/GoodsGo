@@ -2,7 +2,6 @@ import { useState, useRef, useEffect, useContext } from 'react';
 import NotificationContext from '../../context/NotificationContext';
 import NotificationDropdown from './NotificationDropdown';
 
-/** Format badge count: caps display at "9+" for counts above 9. */
 function formatCount(count) {
   if (count > 9) return '9+';
   return String(count);
@@ -17,7 +16,6 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
 
-  // Close on outside click or Escape key.
   useEffect(() => {
     if (!open) return;
 
@@ -43,16 +41,11 @@ export default function NotificationBell() {
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="relative p-2 rounded-md text-gray-500 hover:text-primary hover:bg-gray-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-        aria-label={
-          unreadCount > 0
-            ? `Notifications — ${unreadCount} unread`
-            : 'Notifications'
-        }
+        className="relative p-2 rounded-lg text-text-muted hover:text-text hover:bg-overlay transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+        aria-label={unreadCount > 0 ? `Notifications — ${unreadCount} unread` : 'Notifications'}
         aria-haspopup="true"
         aria-expanded={open}
       >
-        {/* Bell icon */}
         <svg
           xmlns="http://www.w3.org/2000/svg"
           className="h-5 w-5"
@@ -69,7 +62,6 @@ export default function NotificationBell() {
           />
         </svg>
 
-        {/* Unread count badge */}
         {unreadCount > 0 && (
           <span
             className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[1.1rem] h-[1.1rem] px-0.5 rounded-full bg-danger text-white text-[10px] font-bold leading-none"

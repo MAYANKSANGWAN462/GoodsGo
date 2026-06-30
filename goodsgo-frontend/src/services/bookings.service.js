@@ -121,3 +121,14 @@ export async function getBookingHistory(bookingId) {
   const res = await api.get(`/bookings/${bookingId}/history`);
   return unwrapResponse(res).data;
 }
+
+/**
+ * Fetch all booking requests for a specific post (post owner only).
+ * Used by PostDetailPage to render the incoming requests panel.
+ * @param {string} postId
+ * @returns {Promise<{ data: Array, meta: object }>}
+ */
+export async function getPostBookings(postId) {
+  const res = await api.get(`/posts/${postId}/bookings`);
+  return unwrapResponse(res);
+}

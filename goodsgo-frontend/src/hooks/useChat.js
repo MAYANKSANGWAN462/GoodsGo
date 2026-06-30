@@ -86,11 +86,17 @@ export function useSendMessage(conversationId) {
     },
 
     onSuccess: (newMessage) => {
-      // Replace optimistic with the server-confirmed message.
       queryClient.setQueryData(['messages', conversationId], (old) => {
         if (!old) return { data: [newMessage], meta: null };
-        const filtered = (old.data ?? []).filter((m) => !m._optimistic);
-        return { ...old, data: [...filtered, newMessage] };
+        // Drop the optimistic stub(s).
+        const withoutOptimistic = (old.data ?? []).filter((m) => !m._optimistic);
+        // The socket event may have already inserted the real message before the HTTP
+        // response arrived (backend saves + emits socket before returning the response).
+        // Guard to avoid a duplicate.
+        if (withoutOptimistic.some((m) => m.id === newMessage.id)) {
+          return { ...old, data: withoutOptimistic };
+        }
+        return { ...old, data: [...withoutOptimistic, newMessage] };
       });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
     },

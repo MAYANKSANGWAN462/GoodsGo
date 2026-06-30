@@ -45,7 +45,7 @@ const getBookingReviews = asyncHandler(async (req, res) => {
   );
 
   res.status(200).json(
-    new ApiResponse(200, 'Booking reviews retrieved.', result)
+    new ApiResponse(200, 'Booking reviews retrieved.', result.reviews)
   );
 });
 

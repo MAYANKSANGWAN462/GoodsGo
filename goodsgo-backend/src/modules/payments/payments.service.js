@@ -4,11 +4,14 @@ const crypto  = require('crypto');
 const Razorpay = require('razorpay');
 
 const { query, getClient }  = require('../../config/database');
+const { emitToUser }        = require('../../config/socket');
 const ApiError              = require('../../utils/ApiError');
 const {
   BOOKING_STATUS,
   PAYMENT_STATUS,
-  NOTIFICATION_TYPES
+  NOTIFICATION_TYPES,
+  POST_TYPES,
+  SOCKET_EVENTS
 } = require('../../utils/constants');
 
 // ─── Razorpay Client (lazy singleton) ────────────────────────────────────────
@@ -140,11 +143,13 @@ function formatPayment(row) {
 async function initiatePayment(bookingId, payerId) {
   // ── 1. Fetch and validate the booking ──────────────────────────────────────
   const bookingResult = await query(
-    `SELECT id, status, requester_id, post_owner_id,
-            agreed_price, platform_commission_pct, platform_commission_amt,
-            net_payout, payment_deadline
-     FROM bookings
-     WHERE id = $1`,
+    `SELECT b.id, b.status, b.requester_id, b.post_owner_id,
+            b.agreed_price, b.platform_commission_pct, b.platform_commission_amt,
+            b.net_payout, b.payment_deadline,
+            p.post_type
+     FROM bookings b
+     JOIN posts p ON p.id = b.post_id
+     WHERE b.id = $1`,
     [bookingId]
   );
 
@@ -154,8 +159,15 @@ async function initiatePayment(bookingId, payerId) {
 
   const booking = bookingResult.rows[0];
 
-  if (booking.requester_id !== payerId) {
-    throw ApiError.forbidden('Only the booking requester can initiate payment.');
+  // Determine who the shipper (payer) and transporter (payee) are based on post type.
+  // Need-Transport: post owner = Shipper (payer), requester = Transporter (payee).
+  // Vehicle-Available / Return-Journey: requester = Shipper (payer), post owner = Transporter (payee).
+  const isNeedTransport = booking.post_type === POST_TYPES.NEED_TRANSPORT;
+  const shipperId   = isNeedTransport ? booking.post_owner_id : booking.requester_id;
+  const transporterId = isNeedTransport ? booking.requester_id : booking.post_owner_id;
+
+  if (payerId !== shipperId) {
+    throw ApiError.forbidden('Only the shipper can initiate payment for this booking.');
   }
 
   if (booking.status !== BOOKING_STATUS.ACCEPTED) {
@@ -178,7 +190,7 @@ async function initiatePayment(bookingId, payerId) {
 
   // ── 2. Check for an existing, non-failed payment ──────────────────────────
   const existingPayment = await query(
-    `SELECT id, status FROM payments
+    `SELECT id, status, gateway_order_id, amount, currency FROM payments
      WHERE booking_id = $1
        AND status NOT IN ('failed')
      ORDER BY created_at DESC
@@ -195,6 +207,25 @@ async function initiatePayment(bookingId, payerId) {
         null,
         'PAYMENT_ALREADY_COMPLETED'
       );
+    }
+    // Pending/processing: return the existing Razorpay order so the frontend can
+    // reopen checkout and retry. This handles the case where the user closed the
+    // Razorpay modal after a payment failure — in dev/test the webhook may not
+    // fire to mark the row 'failed', leaving it permanently 'pending'.
+    if (
+      existing.status === PAYMENT_STATUS.PENDING ||
+      existing.status === PAYMENT_STATUS.PROCESSING
+    ) {
+      console.log(
+        `[Payments] Reusing existing ${existing.status} order — booking: ${bookingId}, order: ${existing.gateway_order_id}`
+      );
+      return {
+        orderId:      existing.gateway_order_id,
+        amount:       Math.round(parseFloat(existing.amount) * 100), // paise for Razorpay widget
+        currency:     existing.currency,
+        key:          process.env.RAZORPAY_KEY_ID,
+        paymentRowId: existing.id
+      };
     }
     throw new ApiError(
       409,
@@ -239,8 +270,8 @@ async function initiatePayment(bookingId, payerId) {
      RETURNING *`,
     [
       bookingId,
-      payerId,
-      booking.post_owner_id,
+      shipperId,
+      transporterId,
       agreedPrice,
       commissionPct,
       commissionAmt,
@@ -376,14 +407,18 @@ async function verifyPayment(bookingId, orderId, paymentId, signature, payerId) 
 
   console.log(`[Payments] Payment verified — booking: ${bookingId}, payment: ${paymentId}`);
 
-  // ── 6. Notify payer (fire-and-forget) ────────────────────────────────────
+  // ── 6. Realtime + notification (fire-and-forget) ──────────────────────────
+  const paymentPayload = { bookingId, paymentId: updatedPayment.id, status: PAYMENT_STATUS.COMPLETED };
+  emitToUser(updatedPayment.payer_id, SOCKET_EVENTS.PAYMENT_STATUS_CHANGED, paymentPayload);
+  emitToUser(updatedPayment.payee_id, SOCKET_EVENTS.PAYMENT_STATUS_CHANGED, paymentPayload);
+
   setImmediate(() => {
     notify({
-      userId: payerId,
+      userId: updatedPayment.payer_id,
       type:   NOTIFICATION_TYPES.PAYMENT_RECEIVED,
       title:  'Payment confirmed',
       body:   'Your payment has been received. The transporter has been notified.',
-      data:   { bookingId, paymentId: updatedPayment.id }
+      data:   paymentPayload
     });
   });
 

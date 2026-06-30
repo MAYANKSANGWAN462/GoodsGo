@@ -1,16 +1,20 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import PropTypes from 'prop-types';
 import toast from 'react-hot-toast';
-import { usePost, useToggleSave, useReportPost } from '../../hooks/usePosts';
+import { usePost, useToggleSave, useReportPost, useDeletePost } from '../../hooks/usePosts';
+import { usePostBookings, useAcceptBooking, useRejectBooking } from '../../hooks/useBookings';
 import useAuthStore from '../../stores/useAuthStore';
 import PostImageGallery from '../../components/posts/PostImageGallery';
 import PostTypeBadge from '../../components/posts/PostTypeBadge';
 import Avatar from '../../components/common/Avatar';
 import Button from '../../components/common/Button';
 import Spinner from '../../components/common/Spinner';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
+import BookingStatusBadge from '../../components/bookings/BookingStatusBadge';
 import BookingRequestModal from '../../components/bookings/BookingRequestModal';
-import { formatDate, formatCurrency } from '../../utils/formatters';
-import { ROUTES } from '../../constants/routes';
+import { formatDate, formatCurrency, timeAgo } from '../../utils/formatters';
+import { ROUTES, buildRoute } from '../../constants/routes';
 
 const REPORT_REASONS = [
   { value: 'spam', label: 'Spam' },
@@ -19,6 +23,86 @@ const REPORT_REASONS = [
   { value: 'wrong_category', label: 'Wrong Category' },
   { value: 'other', label: 'Other' },
 ];
+
+/**
+ * A single row in the incoming-requests panel.
+ * Isolated into its own component so accept/reject mutation hooks are correctly
+ * scoped to each booking's ID rather than re-created on every parent render.
+ */
+function RequestRow({ booking, postPriceEstimate }) {
+  const navigate = useNavigate();
+  const acceptMutation = useAcceptBooking(booking.id);
+  const rejectMutation = useRejectBooking(booking.id);
+
+  return (
+    <li className="border border-border rounded-lg p-3 flex flex-col gap-2">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <Avatar
+            src={booking.requester?.profileImageUrl}
+            name={booking.requester?.fullName}
+            size="xs"
+          />
+          <span className="text-sm font-medium text-text truncate">
+            {booking.requester?.fullName ?? 'Unknown'}
+          </span>
+        </div>
+        <BookingStatusBadge status={booking.status} size="sm" />
+      </div>
+
+      {booking.goodsDescription && (
+        <p className="text-xs text-text-muted line-clamp-2">{booking.goodsDescription}</p>
+      )}
+
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <span className="text-xs text-text-muted">{timeAgo(booking.createdAt)}</span>
+        <div className="flex gap-2 items-center">
+          <button
+            onClick={() => navigate(buildRoute(ROUTES.BOOKING_DETAIL, { id: booking.id }))}
+            className="text-xs text-primary hover:underline"
+          >
+            View →
+          </button>
+          {booking.status === 'pending' && (
+            <>
+              <Button
+                size="sm"
+                variant="secondary"
+                isLoading={rejectMutation.isPending}
+                onClick={() => rejectMutation.mutate({})}
+              >
+                Reject
+              </Button>
+              <Button
+                size="sm"
+                isLoading={acceptMutation.isPending}
+                onClick={() =>
+                  acceptMutation.mutate({ agreed_price: postPriceEstimate ?? 0 })
+                }
+              >
+                Accept
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+    </li>
+  );
+}
+
+RequestRow.propTypes = {
+  booking: PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    status: PropTypes.string.isRequired,
+    createdAt: PropTypes.string,
+    goodsDescription: PropTypes.string,
+    requester: PropTypes.shape({
+      fullName: PropTypes.string,
+      profileImageUrl: PropTypes.string,
+    }),
+  }).isRequired,
+  postPriceEstimate: PropTypes.number,
+};
 
 export default function PostDetailPage() {
   const { id: postId } = useParams();
@@ -29,7 +113,17 @@ export default function PostDetailPage() {
   const toggleSaveMutation = useToggleSave(postId);
   const reportMutation = useReportPost();
 
+  // Owner-only: incoming requests panel.
+  // enabled only after isOwner is determined (post must be loaded first).
+  const isOwner = isAuthenticated && user?.id === post?.owner?.id;
+  const { data: postBookingsData, isLoading: bookingsLoading } = usePostBookings(
+    isOwner ? postId : undefined
+  );
+  const postBookings = postBookingsData?.data ?? [];
+
+  const { mutate: deletePost, isPending: isDeleting } = useDeletePost();
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState('');
   const [reportDesc, setReportDesc] = useState('');
@@ -55,8 +149,6 @@ export default function PostDetailPage() {
       </div>
     );
   }
-
-  const isOwner = isAuthenticated && user?.id === post.owner?.id;
 
   function handleReport() {
     if (!reportReason) {
@@ -175,25 +267,64 @@ export default function PostDetailPage() {
           {post.owner && (
             <div className="bg-surface rounded-xl border border-border p-4">
               <h3 className="font-semibold text-text mb-3 text-sm">Posted by</h3>
-              <div className="flex items-center gap-3">
+
+              {/* Avatar + name row */}
+              <div className="flex items-center gap-3 mb-3">
                 <Avatar
                   src={post.owner.profileImageUrl}
                   name={post.owner.fullName}
                   size="md"
                 />
-                <div className="min-w-0">
-                  <p className="font-medium text-text text-sm truncate">{post.owner.fullName}</p>
-                  {post.owner.rating != null && (
-                    <p className="text-xs text-text-muted mt-0.5">
-                      ⭐ {Number(post.owner.rating).toFixed(1)}
-                    </p>
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-text text-sm truncate">
+                    {post.owner.fullName}
+                  </p>
+                  {post.owner.isIdentityVerified && (
+                    <span className="text-xs text-green-600 font-medium">
+                      ✓ Verified
+                    </span>
                   )}
                 </div>
               </div>
+
+              {/* Key stats */}
+              <dl className="flex flex-col gap-1.5 text-xs mb-3">
+                {post.owner.rating > 0 && (
+                  <div className="flex items-center justify-between">
+                    <dt className="text-text-muted">Rating</dt>
+                    <dd className="font-medium text-text">
+                      ⭐ {Number(post.owner.rating).toFixed(1)}
+                      {post.owner.totalReviews > 0 && (
+                        <span className="text-text-muted font-normal">
+                          {' '}({post.owner.totalReviews} {post.owner.totalReviews === 1 ? 'review' : 'reviews'})
+                        </span>
+                      )}
+                    </dd>
+                  </div>
+                )}
+                {post.owner.memberSince && (
+                  <div className="flex items-center justify-between">
+                    <dt className="text-text-muted">Member since</dt>
+                    <dd className="text-text">{formatDate(post.owner.memberSince, 'MMM yyyy')}</dd>
+                  </div>
+                )}
+              </dl>
+
+              {/* View full profile — only shown to non-owners */}
+              {!isOwner && (
+                <button
+                  onClick={() =>
+                    navigate(buildRoute(ROUTES.PUBLIC_PROFILE, { userId: post.owner.id }))
+                  }
+                  className="text-xs text-primary hover:underline focus:outline-none"
+                >
+                  View profile →
+                </button>
+              )}
             </div>
           )}
 
-          {/* Action buttons — authenticated, not owner */}
+          {/* Non-owner authenticated actions */}
           {!isOwner && isAuthenticated && (
             <div className="flex flex-col gap-2">
               {post.status === 'active' && (
@@ -201,9 +332,19 @@ export default function PostDetailPage() {
                   fullWidth
                   onClick={() => setBookingModalOpen(true)}
                 >
-                  Request Booking
+                  {post.postType === 'need_transport'
+                    ? 'Submit Transport Offer'
+                    : 'Request Cargo Space'}
                 </Button>
               )}
+
+              <Button
+                variant="secondary"
+                fullWidth
+                onClick={() => navigate(ROUTES.CHAT)}
+              >
+                💬 Messages
+              </Button>
 
               <Button
                 variant="secondary"
@@ -237,20 +378,85 @@ export default function PostDetailPage() {
             </div>
           )}
 
-          {/* Owner indicator */}
+          {/* Owner: post management actions */}
           {isOwner && (
-            <div className="bg-surface rounded-xl border border-border p-4 text-center">
-              <p className="text-xs text-text-muted">This is your post.</p>
+            <div className="bg-surface rounded-xl border border-border p-4">
+              <h3 className="font-semibold text-text text-sm mb-3">Manage Post</h3>
+              <div className="flex flex-col gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  fullWidth
+                  onClick={() => navigate(buildRoute(ROUTES.EDIT_POST, { id: postId }))}
+                >
+                  Edit Post
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  fullWidth
+                  onClick={() => setConfirmDeleteOpen(true)}
+                  disabled={isDeleting || post.status === 'booked'}
+                >
+                  Delete Post
+                </Button>
+                {post.status === 'booked' && (
+                  <p className="text-xs text-text-muted">
+                    This post has an active booking. Cancel the booking first to delete the post.
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Owner: incoming booking requests panel */}
+          {isOwner && (
+            <div className="bg-surface rounded-xl border border-border p-4">
+              <h3 className="font-semibold text-text text-sm mb-3">Incoming Requests</h3>
+              {bookingsLoading ? (
+                <div className="flex justify-center py-4">
+                  <Spinner size="sm" />
+                </div>
+              ) : postBookings.length === 0 ? (
+                <p className="text-sm text-text-muted text-center py-3">
+                  No booking requests yet.
+                </p>
+              ) : (
+                <ol className="flex flex-col gap-3">
+                  {postBookings.map((b) => (
+                    <RequestRow
+                      key={b.id}
+                      booking={b}
+                      postPriceEstimate={post.priceEstimate}
+                    />
+                  ))}
+                </ol>
+              )}
             </div>
           )}
         </div>
       </div>
 
+      {/* ── Delete post confirmation ─────────────────────────────────── */}
+      <ConfirmDialog
+        isOpen={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        onConfirm={() => {
+          deletePost(postId);
+          setConfirmDeleteOpen(false);
+        }}
+        title="Delete this post?"
+        message="This will permanently remove the post from the marketplace. Any pending booking requests will be automatically cancelled and those requesters will be notified."
+        confirmLabel="Delete Post"
+        confirmVariant="danger"
+        isLoading={isDeleting}
+      />
+
       {/* ── Booking request modal ────────────────────────────────────── */}
       <BookingRequestModal
         isOpen={bookingModalOpen}
         onClose={() => setBookingModalOpen(false)}
-        postId={postId}
+        post={post}
       />
 
       {/* ── Report modal ─────────────────────────────────────────────── */}
