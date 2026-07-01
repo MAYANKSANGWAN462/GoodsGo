@@ -22,8 +22,8 @@ export default function ErrorState({
 }) {
   const defaults = {
     network:  { title: 'Connection problem',   message: 'Check your internet connection and try again.' },
-    notFound: { title: 'Not found',            message: 'The item you're looking for doesn't exist or has been removed.' },
-    forbidden:{ title: 'Access denied',        message: 'You don't have permission to view this content.' },
+    notFound: { title: 'Not found',            message: "The item you're looking for doesn't exist or has been removed." },
+    forbidden:{ title: 'Access denied',        message: "You don't have permission to view this content." },
     server:   { title: 'Something went wrong', message: 'Our servers encountered an error. Please try again in a moment.' },
     generic:  { title: 'Something went wrong', message: 'An unexpected error occurred. Please try again.' },
   };
