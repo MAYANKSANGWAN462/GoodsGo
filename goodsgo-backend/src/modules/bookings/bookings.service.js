@@ -90,6 +90,7 @@ function formatBooking(row) {
     requesterId:          row.requester_id,
     postOwnerId:          row.post_owner_id,
     status:               row.status,
+    offeredPrice:         row.offered_price      ? parseFloat(row.offered_price)      : null,
     agreedPrice:          row.agreed_price       ? parseFloat(row.agreed_price)       : null,
     platformCommissionPct: row.platform_commission_pct ? parseFloat(row.platform_commission_pct) : null,
     platformCommissionAmt: row.platform_commission_amt ? parseFloat(row.platform_commission_amt) : null,

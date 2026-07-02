@@ -29,6 +29,7 @@ function formatOwnProfile(row) {
     isEmailVerified:     row.is_email_verified,
     isPhoneVerified:     row.is_phone_verified,
     isIdentityVerified:  row.is_identity_verified,
+    isActive:            row.is_active,
     rating:              parseFloat(row.rating) || 0,
     totalReviews:        row.total_reviews || 0,
     cancellationCount:   row.cancellation_count || 0,
@@ -78,7 +79,7 @@ async function getMyProfile(userId) {
        id, email, phone, full_name, profile_image_url,
        bio, city, state, country,
        is_email_verified, is_phone_verified, is_identity_verified,
-       rating, total_reviews, cancellation_count,
+       is_active, rating, total_reviews, cancellation_count,
        last_login_at, created_at, updated_at
      FROM users
      WHERE id = $1

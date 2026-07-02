@@ -211,6 +211,15 @@ async function login({ email, password }, res) {
     );
   }
 
+  if (!user.is_email_verified) {
+    throw new ApiError(
+      403,
+      'Please verify your email address before logging in. Check your inbox for a verification link, or request a new one.',
+      null,
+      'EMAIL_NOT_VERIFIED'
+    );
+  }
+
   // 5. Generate tokens
   const accessToken  = generateAccessToken(user);
   const refreshToken = generateRefreshToken(user);

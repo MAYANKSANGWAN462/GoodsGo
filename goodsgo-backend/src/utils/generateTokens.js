@@ -2,6 +2,7 @@
 
 const jwt    = require('jsonwebtoken');
 const crypto = require('crypto');
+const { randomUUID } = crypto;
 
 // ─── Token Generation ─────────────────────────────────────────────────────────
 
@@ -36,7 +37,7 @@ function generateAccessToken(user) {
  */
 function generateRefreshToken(user) {
   return jwt.sign(
-    { id: user.id, role: 'user' },
+    { id: user.id, role: 'user', jti: randomUUID() },
     process.env.JWT_REFRESH_SECRET,
     { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d' }
   );
