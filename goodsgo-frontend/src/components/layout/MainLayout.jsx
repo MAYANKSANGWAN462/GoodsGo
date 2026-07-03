@@ -22,7 +22,10 @@ export default function MainLayout() {
 
       {/* Page content — extra bottom padding on mobile for the BottomNav */}
       <main className="flex-1 mx-auto w-full max-w-7xl px-4 pt-6 pb-24 md:py-6">
-        <Outlet />
+        {/* key forces remount on route change, triggering each page's own entrance animation */}
+        <div key={pathname}>
+          <Outlet />
+        </div>
       </main>
 
       {/* Footer — hidden on mobile (replaced by BottomNav) */}

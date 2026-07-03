@@ -7,7 +7,6 @@ import ProfileHeader from '../../components/profile/ProfileHeader';
 import ProfileStats from '../../components/profile/ProfileStats';
 import PostList from '../../components/posts/PostList';
 import ReviewList from '../../components/reviews/ReviewList';
-import Spinner from '../../components/common/Spinner';
 import Button from '../../components/common/Button';
 import { ROUTES } from '../../constants/routes';
 
@@ -48,16 +47,42 @@ export default function MyProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center py-20">
-        <Spinner size="lg" />
+      <div className="max-w-3xl mx-auto px-4 py-6 space-y-6 animate-fade-in">
+        {/* Profile header skeleton */}
+        <div className="bg-surface border border-border rounded-xl shadow-sm overflow-hidden">
+          <div className="skeleton h-2 w-full rounded-none" />
+          <div className="p-6 flex flex-col sm:flex-row items-start gap-5">
+            <div className="skeleton w-20 h-20 rounded-full flex-shrink-0" />
+            <div className="flex-1 space-y-3 pt-1">
+              <div className="skeleton h-6 w-44 rounded-full" />
+              <div className="skeleton h-4 w-28 rounded-full" />
+              <div className="skeleton h-3 w-36 rounded-full" />
+            </div>
+          </div>
+        </div>
+        {/* Stats skeleton */}
+        <div className="grid grid-cols-4 gap-3">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="bg-surface border border-border rounded-xl p-4 text-center">
+              <div className="skeleton h-7 w-10 rounded mx-auto mb-2" />
+              <div className="skeleton h-3 w-14 rounded mx-auto" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
 
   if (isError || !user) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-12 text-center">
-        <p className="text-text-muted text-sm">Failed to load profile. Please refresh the page.</p>
+      <div className="max-w-3xl mx-auto px-4 py-12 flex flex-col items-center text-center animate-fade-in">
+        <div className="w-14 h-14 rounded-2xl bg-danger-subtle border border-danger/20 flex items-center justify-center mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7 text-danger" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+          </svg>
+        </div>
+        <p className="text-base font-semibold text-text mb-1">Failed to load profile</p>
+        <p className="text-sm text-text-muted">Please refresh the page.</p>
       </div>
     );
   }

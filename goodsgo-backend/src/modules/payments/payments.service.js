@@ -60,30 +60,9 @@ async function notify(payload) {
 }
 
 // ─── Platform Settings Helper ─────────────────────────────────────────────────
+// Phase 8: consolidated into the cached config.service (was duplicated here).
 
-/**
- * Reads a value from the platform_settings table.
- * Falls back to `defaultValue` on any error (missing key, DB issue).
- *
- * @param {string} key
- * @param {*} defaultValue
- * @returns {Promise<*>}
- */
-async function getPlatformSetting(key, defaultValue) {
-  try {
-    const result = await query(
-      'SELECT value, value_type FROM platform_settings WHERE key = $1',
-      [key]
-    );
-    if (result.rows.length === 0) return defaultValue;
-    const { value, value_type } = result.rows[0];
-    if (value_type === 'number') return parseFloat(value);
-    if (value_type === 'boolean') return value === 'true';
-    return value;
-  } catch {
-    return defaultValue;
-  }
-}
+const { getPlatformSetting } = require('../config/config.service');
 
 // ─── Response Formatter ───────────────────────────────────────────────────────
 

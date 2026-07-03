@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { generateInitials } from '../../utils/generateInitials';
+import { cloudinaryUrl } from '../../utils/cloudinaryUrl';
 
 const SIZE_CLASSES = {
   xs:  'w-6  h-6  text-[10px]',
@@ -39,8 +40,10 @@ export default function Avatar({ src, name, size = 'md', ring = 'none', classNam
   if (src && !imgError) {
     return (
       <img
-        src={src}
+        src={cloudinaryUrl(src, { width: 192 })}
         alt={name ?? 'User avatar'}
+        loading="lazy"
+        decoding="async"
         className={base}
         onError={() => setImgError(true)}
       />

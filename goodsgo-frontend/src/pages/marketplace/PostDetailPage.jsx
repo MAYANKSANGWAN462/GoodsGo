@@ -351,8 +351,47 @@ export default function PostDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-32">
-        <Spinner size="lg" />
+      <div className="max-w-4xl mx-auto px-4 py-6 animate-fade-in">
+        {/* Back + breadcrumb skeleton */}
+        <div className="flex items-center gap-2 mb-5">
+          <div className="skeleton h-8 w-24 rounded-lg" />
+          <div className="skeleton h-3 w-48 rounded-full" />
+        </div>
+        {/* Main content grid skeleton */}
+        <div className="flex flex-col lg:flex-row gap-6">
+          <div className="flex-1 space-y-5">
+            {/* Image gallery skeleton */}
+            <div className="skeleton w-full h-72 rounded-xl" />
+            {/* Content card skeleton */}
+            <div className="bg-surface border border-border rounded-xl p-6 space-y-4">
+              <div className="skeleton h-6 w-20 rounded-full" />
+              <div className="skeleton h-5 w-2/3 rounded-full" />
+              <div className="skeleton h-4 w-1/2 rounded-full" />
+              <div className="border-t border-border pt-4 space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <div className="skeleton w-4 h-4 rounded flex-shrink-0 mt-0.5" />
+                    <div className="skeleton h-4 w-3/4 rounded-full" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          {/* Sidebar skeleton */}
+          <div className="w-full lg:w-72 flex-shrink-0 space-y-4">
+            <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="skeleton w-12 h-12 rounded-full" />
+                <div className="space-y-2">
+                  <div className="skeleton h-4 w-28 rounded-full" />
+                  <div className="skeleton h-3 w-20 rounded-full" />
+                </div>
+              </div>
+              <div className="skeleton h-10 w-full rounded-lg" />
+              <div className="skeleton h-10 w-full rounded-lg" />
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

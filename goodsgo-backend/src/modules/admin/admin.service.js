@@ -2,6 +2,7 @@
 
 const { query, getClient } = require('../../config/database');
 const ApiError = require('../../utils/ApiError');
+const { invalidatePlatformSettingsCache } = require('../config/config.service');
 const {
   POST_STATUS,
   DISPUTE_STATUS,
@@ -915,6 +916,10 @@ async function updatePlatformSetting(key, value, adminId) {
      RETURNING key, value, value_type, description, updated_at`,
     [value, adminId, key]
   );
+
+  // Phase 8: drop the cached copy so services pick up the new value
+  // immediately instead of waiting out the 60s TTL.
+  invalidatePlatformSettingsCache();
 
   const row = updated.rows[0];
   let parsedValue = row.value;

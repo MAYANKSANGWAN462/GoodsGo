@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
+import { cloudinaryUrl } from '../../utils/cloudinaryUrl';
 
 export default function PostImageGallery({ images = [] }) {
   const [active, setActive] = useState(0);
@@ -17,8 +18,9 @@ export default function PostImageGallery({ images = [] }) {
       {/* Main image */}
       <div className="relative w-full h-64 sm:h-80 rounded-xl overflow-hidden bg-gray-100">
         <img
-          src={images[active]}
+          src={cloudinaryUrl(images[active], { width: 1000 })}
           alt={`Post image ${active + 1} of ${images.length}`}
+          decoding="async"
           className="w-full h-full object-cover"
         />
 
@@ -58,7 +60,7 @@ export default function PostImageGallery({ images = [] }) {
                 idx === active ? 'border-primary' : 'border-transparent hover:border-gray-300',
               ].join(' ')}
             >
-              <img src={src} alt="" className="w-full h-full object-cover" />
+              <img src={cloudinaryUrl(src, { width: 128 })} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
             </button>
           ))}
         </div>

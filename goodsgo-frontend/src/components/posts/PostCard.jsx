@@ -4,6 +4,7 @@ import Card from '../common/Card';
 import Avatar from '../common/Avatar';
 import PostTypeBadge from './PostTypeBadge';
 import { formatDate, formatCurrency } from '../../utils/formatters';
+import { cloudinaryUrl } from '../../utils/cloudinaryUrl';
 import { buildRoute, ROUTES } from '../../constants/routes';
 import useAuthStore from '../../stores/useAuthStore';
 
@@ -85,8 +86,10 @@ export default function PostCard({ post, onToggleSave, isSaved }) {
         {hasImage ? (
           <>
             <img
-              src={post.images[0]}
+              src={cloudinaryUrl(post.images[0], { width: 600 })}
               alt="Post"
+              loading="lazy"
+              decoding="async"
               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
             {/* Gradient overlay at bottom of image */}

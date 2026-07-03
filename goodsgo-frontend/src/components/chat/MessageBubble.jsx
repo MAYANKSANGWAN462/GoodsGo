@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import Avatar from '../common/Avatar';
 import { formatDate } from '../../utils/formatters';
+import { cloudinaryUrl } from '../../utils/cloudinaryUrl';
 
 /** Renders a single chat message, aligned left (received) or right (sent). */
 export default function MessageBubble({ message, isMine }) {
@@ -22,13 +23,15 @@ export default function MessageBubble({ message, isMine }) {
         className={`max-w-[70%] rounded-2xl px-4 py-2.5 ${
           isMine
             ? 'bg-primary text-white rounded-br-sm'
-            : 'bg-white text-text border border-border rounded-bl-sm'
+            : 'bg-surface text-text border border-border rounded-bl-sm'
         }`}
       >
         {isImage ? (
           <img
-            src={message.imageUrl}
+            src={cloudinaryUrl(message.imageUrl, { width: 600 })}
             alt="Shared image"
+            loading="lazy"
+            decoding="async"
             className="max-w-full rounded-lg max-h-64 object-cover"
           />
         ) : (

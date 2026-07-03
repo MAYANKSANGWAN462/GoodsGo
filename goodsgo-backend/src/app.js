@@ -4,6 +4,7 @@ const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const morgan = require('morgan');
+const compression = require('compression');
 
 // ─── Config & Utilities ───────────────────────────────────────────────────────
 const { checkConnection } = require('./config/database');
@@ -84,12 +85,18 @@ app.use(
   })
 );
 
-// 3. Request Logging
+// 3. Response Compression
+//    Compresses JSON responses with gzip/brotli when the client advertises
+//    support (Accept-Encoding). Threshold 1kb — tiny payloads aren't worth
+//    the CPU. Large list responses (feed, bookings) shrink ~5-10x on the wire.
+app.use(compression({ threshold: 1024 }));
+
+// 4. Request Logging
 //    'dev' format: METHOD path statusCode responseTime - bytes
 //    'combined' format: Apache-style full log (use in production)
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
-// 4. Body Parsers
+// 5. Body Parsers
 //    Limit sizes prevent JSON/form payload bombs (DoS protection).
 //    10kb is generous for API payloads while blocking abuse.
 //
@@ -107,12 +114,12 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: false, limit: '10kb' }));
 
-// 5. Input Sanitization
+// 6. Input Sanitization
 //    Strips HTML tags, removes null bytes, trims strings, prevents prototype pollution.
 //    Runs on req.body, req.query, and req.params before any route handler.
 app.use(sanitizeInputs);
 
-// 6. General API Rate Limiting
+// 7. General API Rate Limiting
 //    100 requests per minute per IP on all /api/* routes.
 //    Individual route files apply stricter limits on sensitive endpoints.
 app.use('/api', apiLimiter);

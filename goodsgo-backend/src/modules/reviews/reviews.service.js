@@ -46,29 +46,10 @@ async function notify(payload) {
 }
 
 // ─── Platform settings helper ─────────────────────────────────────────────────
-// Duplicated from bookings.service.js (acknowledged tech debt, Section 32).
+// Phase 8: consolidated into the cached config.service (was duplicated here —
+// the tech debt acknowledged in PROJECT_CONTEXT.md Section 32).
 
-/**
- * getPlatformSetting — Reads a single typed value from platform_settings.
- *
- * @param {string} key          - Setting key
- * @param {*}      defaultValue - Fallback if key is absent or the query fails
- * @returns {Promise<*>}
- */
-async function getPlatformSetting(key, defaultValue) {
-  try {
-    const result = await query(
-      'SELECT value, value_type FROM platform_settings WHERE key = $1',
-      [key]
-    );
-    if (result.rows.length === 0) return defaultValue;
-    const { value, value_type } = result.rows[0];
-    if (value_type === 'number') return parseFloat(value);
-    return value;
-  } catch {
-    return defaultValue;
-  }
-}
+const { getPlatformSetting } = require('../config/config.service');
 
 // ─── formatReview ─────────────────────────────────────────────────────────────
 

@@ -21,8 +21,8 @@ export default function GuestRoute() {
 
   if (isInitializing) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Spinner size="lg" />
+      <div className="flex items-center justify-center min-h-screen animate-fade-in">
+        <Spinner size="lg" className="text-primary" />
       </div>
     );
   }

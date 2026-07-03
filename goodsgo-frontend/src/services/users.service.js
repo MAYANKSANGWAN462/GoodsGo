@@ -12,7 +12,7 @@ export async function getMe() {
 /**
  * Update the authenticated user's profile fields.
  * At least one field must be provided (backend enforced).
- * @param {{ fullName?: string, phone?: string, bio?: string, city?: string, state?: string, country?: string }} body
+ * @param {{ full_name?: string, phone?: string, bio?: string, city?: string, state?: string, country?: string }} body
  * @returns {Promise<object>} Updated user object
  */
 export async function updateProfile(body) {

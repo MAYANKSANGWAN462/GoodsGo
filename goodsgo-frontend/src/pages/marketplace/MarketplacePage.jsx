@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import PropTypes from 'prop-types';
 import { useFeed } from '../../hooks/usePosts';
 import PostList from '../../components/posts/PostList';
 import PostFilters from '../../components/posts/PostFilters';
@@ -109,11 +110,7 @@ function CitySearchBar({ onSearch }) {
 }
 
 CitySearchBar.propTypes = {
-  onSearch: (props, propName) => {
-    if (typeof props[propName] !== 'function') {
-      return new Error(`${propName} must be a function`);
-    }
-  },
+  onSearch: PropTypes.func.isRequired,
 };
 
 // ── Main page ─────────────────────────────────────────────────────────────────

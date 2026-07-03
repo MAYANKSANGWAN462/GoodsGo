@@ -158,6 +158,7 @@ const STATUS_ACCENT = {
   cancelled:     'border-l-red-500',
   rejected:      'border-l-red-400',
   auto_rejected: 'border-l-gray-400',
+  disputed:      'border-l-orange-500',
 };
 
 const STATUS_DOT = {
@@ -168,6 +169,7 @@ const STATUS_DOT = {
   cancelled:     'bg-red-500',
   rejected:      'bg-red-400',
   auto_rejected: 'bg-gray-400',
+  disputed:      'bg-orange-500',
 };
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -221,8 +223,8 @@ export default function BookingDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-32">
-        <Spinner size="lg" />
+      <div className="flex items-center justify-center py-32 animate-fade-in">
+        <Spinner size="lg" className="text-primary" />
       </div>
     );
   }
@@ -295,7 +297,7 @@ export default function BookingDetailPage() {
           prefill: {
             name:    user?.fullName    || '',
             email:   user?.email       || '',
-            contact: user?.phoneNumber || '',
+            contact: user?.phone || '',
           },
           notes: { booking_id: bookingId },
           theme: { color: '#f97316' },

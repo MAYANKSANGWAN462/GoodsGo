@@ -108,12 +108,15 @@ export default function BottomNav() {
               <Link
                 key={to}
                 to={to}
-                className={`flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors duration-150 ${
+                className={`relative flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors duration-150 ${
                   active
                     ? 'text-primary'
                     : 'text-text-muted hover:text-text'
                 }`}
               >
+                {active && (
+                  <span className="absolute top-0 left-1/2 -translate-x-1/2 h-0.5 w-8 bg-primary rounded-b-full" />
+                )}
                 <Icon active={active} />
                 <span>{label}</span>
               </Link>
@@ -138,12 +141,15 @@ export default function BottomNav() {
               <Link
                 key={to}
                 to={to}
-                className={`flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors duration-150 ${
+                className={`relative flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors duration-150 ${
                   active
                     ? 'text-primary'
                     : 'text-text-muted hover:text-text'
                 }`}
               >
+                {active && (
+                  <span className="absolute top-0 left-1/2 -translate-x-1/2 h-0.5 w-8 bg-primary rounded-b-full" />
+                )}
                 <Icon active={active} />
                 <span>{label}</span>
               </Link>
@@ -167,10 +173,13 @@ export default function BottomNav() {
             <Link
               key={to}
               to={to}
-              className={`flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors duration-150 ${
+              className={`relative flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors duration-150 ${
                 active ? 'text-primary' : 'text-text-muted hover:text-text'
               }`}
             >
+              {active && (
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 h-0.5 w-8 bg-primary rounded-b-full" />
+              )}
               <Icon active={active} />
               <span>{label}</span>
             </Link>

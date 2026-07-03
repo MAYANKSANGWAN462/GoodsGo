@@ -47,21 +47,9 @@ function emitBookingStatusChanged(requesterId, postOwnerId, bookingId, postId, s
 }
 
 // ─── Platform settings helper ─────────────────────────────────────────────────
+// Phase 8: consolidated into the cached config.service (was duplicated here).
 
-async function getSetting(key, defaultValue) {
-  try {
-    const result = await query(
-      'SELECT value, value_type FROM platform_settings WHERE key = $1',
-      [key]
-    );
-    if (result.rows.length === 0) return defaultValue;
-    const { value, value_type } = result.rows[0];
-    if (value_type === 'number') return parseFloat(value);
-    return value;
-  } catch {
-    return defaultValue;
-  }
-}
+const { getPlatformSetting: getSetting } = require('../config/config.service');
 
 // ─── History helper ───────────────────────────────────────────────────────────
 

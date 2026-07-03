@@ -38,15 +38,15 @@ export function NotificationProvider({ children }) {
 
   const handleNotification = useCallback(
     (notification) => {
-      // Prepend new notification to all cached notification queries (prefix match).
-      queryClient.setQueriesData({ queryKey: ['notifications'] }, (old) => {
-        if (!old) return { data: [{ ...notification, isRead: false }], meta: { unreadCount: 1 } };
-        return {
-          ...old,
-          data: [{ ...notification, isRead: false }, ...(old.data ?? [])],
-        };
-      });
+      // Invalidate all paginated notification caches so every page re-fetches
+      // from the server. Using setQueriesData would inject the item into every
+      // page slice (including page 2, 3…) and would hard-code an inaccurate
+      // unreadCount in the meta. invalidateQueries is consistent with
+      // useMarkOneRead and useMarkAllRead which use the same approach.
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
 
+      // Optimistic badge increment — corrected by the next successful fetch
+      // via useNotifications' useEffect that reads meta.unreadCount.
       setUnreadCount((prev) => prev + 1);
 
       if (HIGH_PRIORITY_TYPES.includes(notification.type)) {

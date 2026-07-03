@@ -7,7 +7,6 @@ export const BOOKING_STATUS = {
   COMPLETED: 'completed',
   CANCELLED: 'cancelled',
   DISPUTED: 'disputed',
-  RESOLVED: 'resolved',
 };
 
 export const BOOKING_STATUS_LABELS = {
@@ -19,7 +18,6 @@ export const BOOKING_STATUS_LABELS = {
   completed: 'Completed',
   cancelled: 'Cancelled',
   disputed: 'Disputed',
-  resolved: 'Resolved',
 };
 
 /** Badge variant for each booking status — maps to Badge component's variant prop. */
@@ -32,7 +30,6 @@ export const BOOKING_STATUS_BADGE_VARIANT = {
   completed: 'success',
   cancelled: 'danger',
   disputed: 'danger',
-  resolved: 'success',
 };
 
 /**
@@ -65,7 +62,6 @@ export const ELIGIBLE_ACTIONS = {
   withdrawn: { owner: [], requester: [] },
   cancelled: { owner: [], requester: [] },
   disputed: { owner: [], requester: [] },
-  resolved: { owner: [], requester: [] },
 };
 
 /**

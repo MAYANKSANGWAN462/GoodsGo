@@ -160,8 +160,10 @@ function ProfileForm({ user }) {
   }, [user, reset]);
 
   function onSubmit(values) {
+    const { fullName, ...rest } = values;
+    const raw = { ...(fullName !== undefined ? { full_name: fullName } : {}), ...rest };
     const body = Object.fromEntries(
-      Object.entries(values).filter(([, v]) => v !== '' && v !== null && v !== undefined)
+      Object.entries(raw).filter(([, v]) => v !== '' && v !== null && v !== undefined)
     );
     mutation.mutate(body);
   }
@@ -343,8 +345,37 @@ export default function SettingsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center py-20">
-        <Spinner size="lg" />
+      <div className="max-w-2xl mx-auto px-4 py-6 space-y-6 animate-fade-in">
+        {/* Avatar section skeleton */}
+        <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm">
+          <div className="flex items-center gap-3 px-6 py-4 border-b border-border bg-surface-alt">
+            <div className="skeleton w-8 h-8 rounded-lg" />
+            <div className="skeleton h-4 w-32 rounded-full" />
+          </div>
+          <div className="p-6 flex items-center gap-4">
+            <div className="skeleton w-20 h-20 rounded-full" />
+            <div className="space-y-2">
+              <div className="skeleton h-8 w-28 rounded-lg" />
+              <div className="skeleton h-3 w-40 rounded-full" />
+            </div>
+          </div>
+        </div>
+        {/* Profile form skeleton */}
+        <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm">
+          <div className="flex items-center gap-3 px-6 py-4 border-b border-border bg-surface-alt">
+            <div className="skeleton w-8 h-8 rounded-lg" />
+            <div className="skeleton h-4 w-28 rounded-full" />
+          </div>
+          <div className="p-6 space-y-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="space-y-1.5">
+                <div className="skeleton h-3.5 w-20 rounded-full" />
+                <div className="skeleton h-10 w-full rounded-lg" />
+              </div>
+            ))}
+            <div className="skeleton h-10 w-28 rounded-lg" />
+          </div>
+        </div>
       </div>
     );
   }

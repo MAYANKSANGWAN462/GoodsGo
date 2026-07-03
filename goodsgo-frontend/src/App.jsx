@@ -1,4 +1,4 @@
-import PropTypes from 'prop-types';
+import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
@@ -12,61 +12,67 @@ import AdminRoute from './components/guards/AdminRoute';
 import MainLayout from './components/layout/MainLayout';
 import AdminLayout from './components/layout/AdminLayout';
 import ErrorBoundary from './components/common/ErrorBoundary';
+import PageLoader from './components/common/PageLoader';
 
 import { ROUTES } from './constants/routes';
 import { getConfigOptions } from './services/config.service';
 import { useBookingStatusSocket } from './hooks/useBookings';
 import { usePaymentStatusSocket } from './hooks/usePayments';
 
+// ── Route-level code splitting ──────────────────────────────────────────
+// Every page is a lazy chunk so the initial bundle carries only the shell
+// (providers, layouts, guards). Guards/layouts stay static — they render
+// on every navigation and are small.
+
 // Auth pages
-import LoginPage from './pages/auth/LoginPage';
-import RegisterPage from './pages/auth/RegisterPage';
-import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
-import ResetPasswordPage from './pages/auth/ResetPasswordPage';
-import VerifyEmailPage from './pages/auth/VerifyEmailPage';
+const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
+const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'));
+const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('./pages/auth/ResetPasswordPage'));
+const VerifyEmailPage = lazy(() => import('./pages/auth/VerifyEmailPage'));
 
 // Root pages
-import HomePage from './pages/HomePage';
-import NotFoundPage from './pages/NotFoundPage';
-import UnauthorizedPage from './pages/UnauthorizedPage';
+const HomePage = lazy(() => import('./pages/HomePage'));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
+const UnauthorizedPage = lazy(() => import('./pages/UnauthorizedPage'));
 
 // Marketplace pages (optionalAuth — no ProtectedRoute wrapper)
-import MarketplacePage from './pages/marketplace/MarketplacePage';
-import PostDetailPage from './pages/marketplace/PostDetailPage';
+const MarketplacePage = lazy(() => import('./pages/marketplace/MarketplacePage'));
+const PostDetailPage = lazy(() => import('./pages/marketplace/PostDetailPage'));
 
 // Post management pages (auth required)
-import CreatePostPage from './pages/posts/CreatePostPage';
-import EditPostPage from './pages/posts/EditPostPage';
+const CreatePostPage = lazy(() => import('./pages/posts/CreatePostPage'));
+const EditPostPage = lazy(() => import('./pages/posts/EditPostPage'));
 
 // Booking pages (auth required)
-import BookingsPage from './pages/bookings/BookingsPage';
-import BookingDetailPage from './pages/bookings/BookingDetailPage';
+const BookingsPage = lazy(() => import('./pages/bookings/BookingsPage'));
+const BookingDetailPage = lazy(() => import('./pages/bookings/BookingDetailPage'));
 
 // Chat page (auth required)
-import ChatPage from './pages/chat/ChatPage';
+const ChatPage = lazy(() => import('./pages/chat/ChatPage'));
 
 // Notifications page (auth required)
-import NotificationsPage from './pages/notifications/NotificationsPage';
+const NotificationsPage = lazy(() => import('./pages/notifications/NotificationsPage'));
 
 // Profile pages (auth or public — FE-8)
-import MyProfilePage from './pages/profile/MyProfilePage';
-import PublicProfilePage from './pages/profile/PublicProfilePage';
-import SettingsPage from './pages/profile/SettingsPage';
-import SavedPostsPage from './pages/saved/SavedPostsPage';
+const MyProfilePage = lazy(() => import('./pages/profile/MyProfilePage'));
+const PublicProfilePage = lazy(() => import('./pages/profile/PublicProfilePage'));
+const SettingsPage = lazy(() => import('./pages/profile/SettingsPage'));
+const SavedPostsPage = lazy(() => import('./pages/saved/SavedPostsPage'));
 
 // Payments page (FE-10)
-import PaymentHistoryPage from './pages/payments/PaymentHistoryPage';
+const PaymentHistoryPage = lazy(() => import('./pages/payments/PaymentHistoryPage'));
 
 // Admin pages (FE-11)
-import AdminLoginPage from './pages/admin/AdminLoginPage';
-import AdminDashboardPage from './pages/admin/AdminDashboardPage';
-import AdminUsersPage from './pages/admin/AdminUsersPage';
-import AdminUserDetailPage from './pages/admin/AdminUserDetailPage';
-import AdminPostsPage from './pages/admin/AdminPostsPage';
-import AdminBookingsPage from './pages/admin/AdminBookingsPage';
-import AdminReportsPage from './pages/admin/AdminReportsPage';
-import AdminPaymentsPage from './pages/admin/AdminPaymentsPage';
-import AdminReviewsPage from './pages/admin/AdminReviewsPage';
+const AdminLoginPage = lazy(() => import('./pages/admin/AdminLoginPage'));
+const AdminDashboardPage = lazy(() => import('./pages/admin/AdminDashboardPage'));
+const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage'));
+const AdminUserDetailPage = lazy(() => import('./pages/admin/AdminUserDetailPage'));
+const AdminPostsPage = lazy(() => import('./pages/admin/AdminPostsPage'));
+const AdminBookingsPage = lazy(() => import('./pages/admin/AdminBookingsPage'));
+const AdminReportsPage = lazy(() => import('./pages/admin/AdminReportsPage'));
+const AdminPaymentsPage = lazy(() => import('./pages/admin/AdminPaymentsPage'));
+const AdminReviewsPage = lazy(() => import('./pages/admin/AdminReviewsPage'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -86,6 +92,7 @@ export default function App() {
             <NotificationProvider>
               <Toaster
                 position="top-right"
+                containerStyle={{ top: 64, right: 16, maxWidth: 360 }}
                 toastOptions={{
                   duration: 4000,
                   style: {
@@ -94,15 +101,19 @@ export default function App() {
                     background: 'var(--color-surface)',
                     color: 'var(--color-text)',
                     border: '1px solid var(--color-border)',
-                    boxShadow: '0 10px 25px -5px rgba(0,0,0,0.15)',
+                    boxShadow: '0 10px 25px -5px rgba(0,0,0,0.15), 0 0 0 1px var(--color-border)',
                     borderRadius: '12px',
                     padding: '12px 16px',
+                    maxWidth: '360px',
                   },
                   success: {
                     iconTheme: { primary: '#22c55e', secondary: 'white' },
                   },
                   error: {
                     iconTheme: { primary: '#ef4444', secondary: 'white' },
+                  },
+                  loading: {
+                    iconTheme: { primary: '#D31905', secondary: 'transparent' },
                   },
                 }}
               />
@@ -131,8 +142,26 @@ function AppRoutes() {
   useBookingStatusSocket();
   usePaymentStatusSocket();
 
+  // Prefetch the chunks a visitor is most likely to hit next (marketplace,
+  // post detail, login) once the browser is idle, so navigation is instant
+  // without inflating the initial bundle.
+  useEffect(() => {
+    const prefetch = () => {
+      import('./pages/marketplace/MarketplacePage');
+      import('./pages/marketplace/PostDetailPage');
+      import('./pages/auth/LoginPage');
+    };
+    if ('requestIdleCallback' in window) {
+      const id = window.requestIdleCallback(prefetch, { timeout: 3000 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const id = setTimeout(prefetch, 2000);
+    return () => clearTimeout(id);
+  }, []);
+
   return (
     <ErrorBoundary>
+    <Suspense fallback={<PageLoader variant="page" />}>
     <Routes>
       {/* ── Public root ──────────────────────────────────────────────── */}
       <Route path={ROUTES.HOME} element={<HomePage />} />
@@ -197,19 +226,7 @@ function AppRoutes() {
       {/* ── Catch-all ────────────────────────────────────────────────── */}
       <Route path="*" element={<Navigate to={ROUTES.NOT_FOUND} replace />} />
     </Routes>
+    </Suspense>
     </ErrorBoundary>
   );
 }
-
-/** Inline placeholder for routes whose pages are built in later blocks. */
-function PlaceholderPage({ title }) {
-  return (
-    <div className="flex items-center justify-center h-40">
-      <p className="text-text-muted text-sm">{title} — coming soon.</p>
-    </div>
-  );
-}
-
-PlaceholderPage.propTypes = {
-  title: PropTypes.string.isRequired,
-};

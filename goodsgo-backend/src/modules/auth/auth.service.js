@@ -174,7 +174,7 @@ async function register({ email, password, full_name, phone }) {
 async function login({ email, password }, res) {
   // 1. Look up user
   const result = await query(
-    `SELECT id, email, full_name, password_hash, profile_image_url,
+    `SELECT id, email, phone, full_name, password_hash, profile_image_url,
             is_email_verified, is_active, suspended_at, deleted_at,
             rating, total_reviews
      FROM users
@@ -249,6 +249,7 @@ async function login({ email, password }, res) {
       id:               user.id,
       email:            user.email,
       fullName:         user.full_name,
+      phone:            user.phone            || null,
       profileImageUrl:  user.profile_image_url,
       isEmailVerified:  user.is_email_verified,
       rating:           parseFloat(user.rating)  || 0,
@@ -368,7 +369,7 @@ async function refreshAccessToken(req, res) {
 
   // 5. Fetch current user state (account may have been suspended since token was issued)
   const userResult = await query(
-    `SELECT id, email, full_name, profile_image_url, is_email_verified,
+    `SELECT id, email, phone, full_name, profile_image_url, is_email_verified,
             is_active, suspended_at, deleted_at, rating, total_reviews
      FROM users
      WHERE id = $1`,
@@ -415,6 +416,7 @@ async function refreshAccessToken(req, res) {
       id:              user.id,
       email:           user.email,
       fullName:        user.full_name,
+      phone:           user.phone            || null,
       profileImageUrl: user.profile_image_url,
       isEmailVerified: user.is_email_verified,
       rating:          parseFloat(user.rating) || 0,

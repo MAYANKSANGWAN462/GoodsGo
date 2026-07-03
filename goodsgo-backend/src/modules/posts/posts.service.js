@@ -35,22 +35,9 @@ async function notify(payload) {
 }
 
 // ─── Settings helpers ─────────────────────────────────────────────────────────
+// Phase 8: consolidated into the cached config.service (was duplicated here).
 
-async function getPlatformSetting(key, defaultValue) {
-  try {
-    const result = await query(
-      'SELECT value, value_type FROM platform_settings WHERE key = $1',
-      [key]
-    );
-    if (result.rows.length === 0) return defaultValue;
-    const { value, value_type } = result.rows[0];
-    if (value_type === 'number') return parseFloat(value);
-    if (value_type === 'boolean') return value === 'true';
-    return value;
-  } catch {
-    return defaultValue;
-  }
-}
+const { getPlatformSetting } = require('../config/config.service');
 
 // ─── Response formatter ───────────────────────────────────────────────────────
 
@@ -261,23 +248,17 @@ async function getFeed(filters = {}, requestingUserId = null) {
     ? `WHERE ${whereClauses.join(' AND ')}`
     : '';
 
-  // COUNT query for pagination
-  const countResult = await query(
-    `SELECT COUNT(*) AS total
-     FROM posts p
-     ${whereSQL}`,
-    params.slice(0, requestingUserId ? params.length - 1 : params.length)
-    // Re-slice to exclude the saved_posts userId param from count query
-  );
-
-  // Re-build params for the count query (without the saved JOIN param)
+  // COUNT query for pagination (excludes the saved-JOIN userId param —
+  // the count doesn't use that JOIN).
+  // Phase 8: this COUNT was previously executed twice back-to-back with the
+  // first result discarded; the duplicate has been removed.
   const countParams = requestingUserId ? params.slice(0, -1) : params;
-  const countResult2 = await query(
+  const countResult = await query(
     `SELECT COUNT(*) AS total FROM posts p ${whereSQL}`,
     countParams
   );
 
-  const total = parseInt(countResult2.rows[0].total, 10);
+  const total = parseInt(countResult.rows[0].total, 10);
 
   // Main data query
   const dataParams = [...params, limit, offset];

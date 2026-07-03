@@ -76,8 +76,8 @@ export default function EditPostPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Spinner size="lg" />
+      <div className="flex items-center justify-center h-64 animate-fade-in">
+        <Spinner size="lg" className="text-primary" />
       </div>
     );
   }

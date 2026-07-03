@@ -1,16 +1,25 @@
 import { Link } from 'react-router-dom';
 import { ROUTES } from '../../constants/routes';
 import GoodsGoLogo from '../common/GoodsGoLogo';
+import useAuth from '../../hooks/useAuth';
 
-const FOOTER_LINKS = [
+const GUEST_LINKS = [
   { label: 'Marketplace', to: ROUTES.MARKETPLACE },
-  { label: 'Create Post',  to: ROUTES.CREATE_POST },
-  { label: 'Register',     to: ROUTES.REGISTER },
-  { label: 'Log in',       to: ROUTES.LOGIN },
+  { label: 'Register',    to: ROUTES.REGISTER },
+  { label: 'Log in',      to: ROUTES.LOGIN },
+];
+
+const AUTH_LINKS = [
+  { label: 'Marketplace', to: ROUTES.MARKETPLACE },
+  { label: 'Create Post', to: ROUTES.CREATE_POST },
+  { label: 'Bookings',    to: ROUTES.BOOKINGS },
+  { label: 'My Profile',  to: ROUTES.MY_PROFILE },
 ];
 
 export default function Footer() {
+  const { isAuthenticated } = useAuth();
   const year = new Date().getFullYear();
+  const links = isAuthenticated ? AUTH_LINKS : GUEST_LINKS;
 
   return (
     <footer className="border-t border-border bg-surface">
@@ -29,7 +38,7 @@ export default function Footer() {
 
           {/* Links */}
           <nav aria-label="Footer navigation" className="flex items-center gap-5 flex-wrap justify-center">
-            {FOOTER_LINKS.map(({ label, to }) => (
+            {links.map(({ label, to }) => (
               <Link
                 key={to}
                 to={to}

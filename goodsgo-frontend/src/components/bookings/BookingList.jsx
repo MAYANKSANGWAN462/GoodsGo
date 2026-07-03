@@ -2,14 +2,39 @@ import PropTypes from 'prop-types';
 import BookingCard from './BookingCard';
 import Pagination from '../common/Pagination';
 import EmptyState from '../common/EmptyState';
-import Spinner from '../common/Spinner';
+
+function SkeletonBookingCard() {
+  return (
+    <div className="bg-surface rounded-xl border border-border shadow-sm p-5">
+      <div className="flex items-center gap-4">
+        <div className="flex-1 min-w-0 flex flex-col gap-2.5">
+          <div className="skeleton h-5 w-20 rounded-full" />
+          <div className="skeleton h-4 w-1/2 rounded-full" />
+          <div className="flex items-center gap-3">
+            <div className="skeleton h-3 w-24 rounded-full" />
+            <div className="skeleton h-3 w-16 rounded-full" />
+          </div>
+        </div>
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="flex flex-col items-center gap-1">
+            <div className="skeleton w-8 h-8 rounded-full" />
+            <div className="skeleton h-2.5 w-14 rounded-full" />
+          </div>
+          <div className="skeleton w-4 h-4 rounded" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /** Renders an array of BookingCard items with pagination and empty/loading states. */
 export default function BookingList({ bookings, meta, isLoading, currentUserId, onPageChange }) {
   if (isLoading) {
     return (
-      <div className="flex justify-center py-16">
-        <Spinner size="lg" />
+      <div className="flex flex-col gap-3 animate-fade-in">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <SkeletonBookingCard key={i} />
+        ))}
       </div>
     );
   }

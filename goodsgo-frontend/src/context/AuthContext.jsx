@@ -53,7 +53,8 @@ export function AuthProvider({ children }) {
 
     function handleUserUpdated(data) {
       if (data.userId !== user.id) return;
-      setAuth({ ...user, ...data }, accessToken);
+      const { userId: _ignored, ...updates } = data;
+      setAuth({ ...user, ...updates }, accessToken);
     }
 
     socket.on('user_updated', handleUserUpdated);
