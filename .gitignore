@@ -11,6 +11,13 @@ node_modules/
 Thumbs.db
 
 # ──────────────────────────────────────
+# Internal engineering docs & AI tooling (kept local, not published)
+# ──────────────────────────────────────
+CLAUDE.md
+docs/
+.claude/
+
+# ──────────────────────────────────────
 # Design-sync generated / machine state
 # ──────────────────────────────────────
 # Staged converter scripts + their deps (recreated per clone by re-copying from the skill)
@@ -19,11 +26,5 @@ Thumbs.db
 # Generated bundle output (rebuilt by running package-build.mjs)
 ds-bundle/
 
-# Machine-local verification state (carry-forward comes from uploaded _ds_sync.json)
-.design-sync/.cache/
-
-# Subagent scratch (merged into NOTES.md before upload)
-.design-sync/learnings/
-
-# Fork symlink (recreated with: ln -sfn ../.ds-sync/node_modules .design-sync/node_modules)
-.design-sync/node_modules
+# Design-sync workspace (machine/tooling state, not project source)
+.design-sync/
