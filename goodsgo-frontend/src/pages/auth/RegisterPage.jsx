@@ -5,7 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 
-import AuthLayout from '../../components/layout/AuthLayout';
+import AuthSplitLayout from '../../components/layout/AuthSplitLayout';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
 import { ROUTES } from '../../constants/routes';
@@ -77,7 +77,7 @@ export default function RegisterPage() {
   });
 
   return (
-    <AuthLayout>
+    <AuthSplitLayout mode="signup">
       <h2 className="text-2xl font-bold text-text mb-6">Create your account</h2>
 
       <form onSubmit={handleSubmit(mutate)} noValidate className="flex flex-col gap-4">
@@ -126,6 +126,6 @@ export default function RegisterPage() {
           Log in
         </Link>
       </p>
-    </AuthLayout>
+    </AuthSplitLayout>
   );
 }

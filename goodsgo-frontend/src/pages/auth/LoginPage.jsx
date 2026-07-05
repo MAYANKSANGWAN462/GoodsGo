@@ -5,7 +5,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 
-import AuthLayout from '../../components/layout/AuthLayout';
+import AuthSplitLayout from '../../components/layout/AuthSplitLayout';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
 import { ROUTES } from '../../constants/routes';
@@ -48,7 +48,7 @@ export default function LoginPage() {
   });
 
   return (
-    <AuthLayout>
+    <AuthSplitLayout mode="login">
       {justRegistered && (
         <div className="mb-4 rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm text-primary">
           <p className="font-medium">Account created!</p>
@@ -96,6 +96,6 @@ export default function LoginPage() {
           Sign up
         </Link>
       </p>
-    </AuthLayout>
+    </AuthSplitLayout>
   );
 }

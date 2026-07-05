@@ -5,6 +5,20 @@
 // process.env. All config files depend on env vars being available.
 require('dotenv').config();
 
+// ─── Error Monitoring (Sentry) ───────────────────────────────────────────────
+// Initialised here — before all other requires — so Sentry can auto-instrument
+// http, pg, and Node built-ins via its OpenTelemetry integration.
+// Only active when SENTRY_DSN is set; dev and CI runs without a DSN are no-ops.
+const Sentry = require('@sentry/node');
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV || 'development',
+    // Sample 10% of transactions in production to stay within free-tier limits.
+    tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
+  });
+}
+
 // ─── Validate critical environment variables on startup ──────────────────────
 const REQUIRED_ENV_VARS = [
   'DATABASE_URL',

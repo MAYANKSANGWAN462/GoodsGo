@@ -65,13 +65,15 @@ app.use(
         return callback(null, true);
       }
 
-      // In production, reject unknown origins
-      if (process.env.NODE_ENV === 'production') {
-        return callback(new Error(`CORS: Origin ${origin} not allowed`));
+      // Allow all origins ONLY in development (for flexibility). Every other
+      // environment — production, staging, test — rejects unknown origins so a
+      // non-production deploy is never left with a permissive credentialed CORS
+      // policy just because NODE_ENV happens not to equal 'production'.
+      if (process.env.NODE_ENV === 'development') {
+        return callback(null, true);
       }
 
-      // In development, allow all origins (for flexibility)
-      return callback(null, true);
+      return callback(new Error(`CORS: Origin ${origin} not allowed`));
     },
     credentials: true, // Required for httpOnly cookies (refresh token)
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -170,6 +172,15 @@ app.use((req, res) => {
     code: 'NOT_FOUND'
   });
 });
+
+// ─── SENTRY EXPRESS ERROR HANDLER ────────────────────────────────────────────
+// Captures unhandled errors as Sentry events before our formatter runs.
+// Must be BEFORE errorHandler — Sentry needs to see the raw error object.
+// No-op when SENTRY_DSN is unset (development / CI).
+if (process.env.SENTRY_DSN) {
+  const Sentry = require('@sentry/node');
+  Sentry.setupExpressErrorHandler(app);
+}
 
 // ─── GLOBAL ERROR HANDLER ─────────────────────────────────────────────────────
 // Handles: ApiError, JWT errors, PostgreSQL errors, Multer errors, JSON SyntaxError.

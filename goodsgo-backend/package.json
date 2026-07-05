@@ -17,6 +17,7 @@
     "seed:all": "npm run seed:vehicles && npm run seed:categories && npm run seed:settings && npm run seed:admin"
   },
   "dependencies": {
+    "@sentry/node": "^8.55.2",
     "axios": "^1.7.9",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^2.5.1",

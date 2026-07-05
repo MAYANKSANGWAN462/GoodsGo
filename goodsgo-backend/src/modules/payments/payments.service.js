@@ -331,8 +331,22 @@ async function verifyPayment(bookingId, orderId, paymentId, signature, payerId) 
   }
 
   // ── 4. HMAC signature verification (timing-safe) ──────────────────────────
+  // Fail closed if the gateway secret is not configured. Without this guard a
+  // missing/empty RAZORPAY_KEY_SECRET would produce an HMAC keyed on the empty
+  // string, which an attacker can reproduce — allowing forged payment signatures.
+  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  if (!keySecret) {
+    console.error('[Payments] verifyPayment: RAZORPAY_KEY_SECRET is not configured — rejecting.');
+    throw new ApiError(
+      502,
+      'Payment gateway is not configured. Please contact support.',
+      null,
+      'PAYMENT_GATEWAY_ERROR'
+    );
+  }
+
   const expectedSignature = crypto
-    .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET || '')
+    .createHmac('sha256', keySecret)
     .update(`${orderId}|${paymentId}`)
     .digest('hex');
 
@@ -424,7 +438,15 @@ async function verifyPayment(bookingId, orderId, paymentId, signature, payerId) 
  */
 async function handleWebhook(rawBody, signatureHeader) {
   // ── 1. Verify webhook signature ───────────────────────────────────────────
-  const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET || '';
+  // Fail closed if the webhook secret is not configured. An empty secret would
+  // let an attacker forge webhook events (payment.captured / refund.processed)
+  // by computing an HMAC keyed on the empty string — marking bookings paid or
+  // refunded without any real payment. Reject rather than validate against ''.
+  const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    console.error('[Payments] Webhook: RAZORPAY_WEBHOOK_SECRET is not configured — rejecting event.');
+    return;
+  }
 
   const expectedSig = crypto
     .createHmac('sha256', webhookSecret)
