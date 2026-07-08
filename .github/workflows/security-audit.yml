@@ -1,0 +1,99 @@
+name: Security Audit
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Runs automatically every Monday at 09:00 UTC and whenever package files
+# change on main.  Also triggerable manually via workflow_dispatch.
+# No deployment credentials are required.
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  schedule:
+    # Every Monday at 09:00 UTC — catches newly disclosed CVEs even when no
+    # code has been pushed.
+    - cron: '0 9 * * 1'
+
+  push:
+    branches: [main]
+    paths:
+      - '**/package.json'
+      - '**/package-lock.json'
+
+  # Allow manual execution from the GitHub Actions tab.
+  workflow_dispatch:
+
+jobs:
+  # ── Backend audit ────────────────────────────────────────────────────────────
+  audit-backend:
+    name: Backend Dependency Audit
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: goodsgo-backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: goodsgo-backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Fail this job only on high-or-above in the scheduled audit so that
+      # a newly-discovered CVE in a transitive dep is surfaced promptly.
+      - name: Audit (fail on high)
+        run: npm audit --audit-level=high
+
+      # Always generate the machine-readable JSON report so it can be
+      # downloaded and triaged even if the step above passes.
+      - name: Generate full audit report
+        if: always()
+        run: npm audit --json > audit-backend.json || true
+
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-security-audit-${{ github.run_id }}
+          path: goodsgo-backend/audit-backend.json
+          retention-days: 90
+
+  # ── Frontend audit ───────────────────────────────────────────────────────────
+  audit-frontend:
+    name: Frontend Dependency Audit
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: goodsgo-frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: goodsgo-frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit (fail on high)
+        run: npm audit --audit-level=high
+
+      - name: Generate full audit report
+        if: always()
+        run: npm audit --json > audit-frontend.json || true
+
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-security-audit-${{ github.run_id }}
+          path: goodsgo-frontend/audit-frontend.json
+          retention-days: 90

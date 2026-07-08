@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import ConversationList from '../../components/chat/ConversationList';
 import ChatWindow from '../../components/chat/ChatWindow';
+import ChatBackground from '../../components/chat/ChatBackground';
 import { useConversations } from '../../hooks/useChat';
 
 function ChatBubbleIllustration() {
@@ -96,9 +97,14 @@ export default function ChatPage() {
 
   return (
     <div
-      className="flex overflow-hidden rounded-xl border border-border bg-surface shadow-sm animate-fade-in"
+      className="relative overflow-hidden rounded-xl border border-border shadow-sm animate-fade-in"
       style={{ height: 'calc(100vh - 9rem)' }}
     >
+      <ChatBackground />
+
+      {/* Chat panels — sit above the scenic background */}
+      <div className="relative z-10 flex h-full overflow-hidden">
+
       {/* ── Conversation list panel ─────────────────────────────────── */}
       <div
         className={[
@@ -199,6 +205,8 @@ export default function ChatPage() {
           </div>
         )}
       </div>
+
+      </div> {/* end z-10 flex wrapper */}
     </div>
   );
 }

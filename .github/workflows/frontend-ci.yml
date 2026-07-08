@@ -1,0 +1,92 @@
+name: Frontend CI
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Runs on every push and pull-request targeting main or develop that touches
+# frontend files.  No deployment credentials are required — this workflow only
+# validates lint and build integrity.
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'goodsgo-frontend/**'
+      - '.github/workflows/frontend-ci.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'goodsgo-frontend/**'
+      - '.github/workflows/frontend-ci.yml'
+
+# Cancel superseded runs on the same branch to save runner minutes.
+concurrency:
+  group: frontend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Lint and Build Frontend
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: goodsgo-frontend
+
+    steps:
+      # ── 1. Source ──────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Runtime ─────────────────────────────────────────────────────────
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: goodsgo-frontend/package-lock.json
+
+      # ── 3. Dependencies ────────────────────────────────────────────────────
+      - name: Install dependencies
+        run: npm ci
+
+      # ── 4. Lint ────────────────────────────────────────────────────────────
+      # eslint.config.js uses ESLint 9 flat-config format.
+      # Any lint error exits non-zero and blocks the build.
+      - name: ESLint
+        run: npm run lint
+
+      # ── 5. Production build ────────────────────────────────────────────────
+      # Vite bundles all modules.  If any import is unresolvable, a component
+      # has a JSX syntax error, or Tailwind CSS classes are invalid this step
+      # fails — providing stronger validation than lint alone.
+      #
+      # VITE_API_URL is set to a placeholder; the build does not make HTTP
+      # calls so any non-empty URL value is sufficient to satisfy Vite's
+      # import.meta.env reference.
+      #
+      # SENTRY_AUTH_TOKEN is intentionally absent — without it, vite.config.js
+      # skips the Sentry plugin and source maps are not generated.
+      - name: Build production bundle
+        run: npm run build
+        env:
+          VITE_API_URL: https://api.goodsgo.in
+
+      # ── 6. Bundle size report (informational) ─────────────────────────────
+      - name: Report bundle size
+        run: |
+          echo "=== Total dist/ size ==="
+          du -sh dist/
+          echo ""
+          echo "=== Top 10 JS chunks by size ==="
+          find dist/assets -name "*.js" -exec ls -lh {} \; 2>/dev/null \
+            | awk '{print $5, $9}' \
+            | sort -rh \
+            | head -10 || true
+
+      # ── 7. Security audit ──────────────────────────────────────────────────
+      - name: Audit — critical vulnerabilities (blocking)
+        run: npm audit --audit-level=critical
+
+      - name: Audit — high vulnerabilities (informational)
+        run: npm audit --audit-level=high
+        continue-on-error: true

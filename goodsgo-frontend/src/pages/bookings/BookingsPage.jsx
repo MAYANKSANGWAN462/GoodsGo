@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import useAuthStore from '../../stores/useAuthStore';
 import BookingList from '../../components/bookings/BookingList';
 import EmptyState from '../../components/common/EmptyState';
+import BookingBackground from '../../components/bookings/BookingBackground';
 import { useBookings } from '../../hooks/useBookings';
 
 function ClipboardListIcon() {
@@ -56,9 +57,17 @@ export default function BookingsPage() {
   const showEmptyHint = !isLoading && bookings.length === 0;
 
   return (
-    <div className="max-w-2xl mx-auto animate-fade-in">
-      {/* Page header */}
-      <div className="flex items-start gap-3 mb-6">
+    <div
+      className="relative overflow-hidden rounded-xl border border-border shadow-sm animate-fade-in"
+      style={{ height: 'calc(100vh - 9rem)' }}
+    >
+      <BookingBackground />
+
+      {/* Booking content — scrollable over the scenic background */}
+      <div className="relative z-10 h-full overflow-y-auto">
+      <div className="max-w-2xl mx-auto py-6 px-4">
+      {/* Page header — frosted card so title text reads on the dark night sky */}
+      <div className="flex items-start gap-3 mb-6 bg-surface/80 backdrop-blur-sm rounded-xl px-4 py-3">
         <span className="mt-0.5 w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
           <ClipboardListIcon />
         </span>
@@ -124,6 +133,8 @@ export default function BookingsPage() {
           onPageChange={(p) => setPage(p)}
         />
       )}
+    </div>
+      </div> {/* end scrollable content */}
     </div>
   );
 }
