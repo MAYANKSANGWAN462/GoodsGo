@@ -28,3 +28,10 @@ ds-bundle/
 
 # Design-sync workspace (machine/tooling state, not project source)
 .design-sync/
+
+# ──────────────────────────────────────
+# Local API & testing tools
+# ──────────────────────────────────────
+# Postman collection (kept local — may contain auth tokens or internal request details)
+GoodsGo.postman_collection.json
+*.postman_collection.json
