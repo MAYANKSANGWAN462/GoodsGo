@@ -84,7 +84,7 @@ Goods Go/
 ### 1. Clone and install
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/MAYANKSANGWAN462/GoodsGo.git
 cd "Goods Go"
 
 cd goodsgo-backend && npm install

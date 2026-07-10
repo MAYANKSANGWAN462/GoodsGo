@@ -57,16 +57,19 @@ export default function BookingsPage() {
   const showEmptyHint = !isLoading && bookings.length === 0;
 
   return (
-    <div
-      className="relative overflow-hidden rounded-xl border border-border shadow-sm animate-fade-in"
-      style={{ height: 'calc(100vh - 9rem)' }}
-    >
-      <BookingBackground />
+    <>
+      {/* Background: fixed to the full viewport below the sticky navbar (h-14 = 3.5rem).
+          pointer-events-none so it never intercepts clicks. */}
+      <div
+        className="fixed left-0 right-0 bottom-0 overflow-hidden pointer-events-none"
+        style={{ top: '3.5rem', zIndex: 1 }}
+      >
+        <BookingBackground />
+      </div>
 
-      {/* Booking content — scrollable over the scenic background */}
-      <div className="relative z-10 h-full overflow-y-auto">
-      <div className="max-w-2xl mx-auto py-6 px-4">
-      {/* Page header — frosted card so title text reads on the dark night sky */}
+      {/* Booking content — exactly the original styling, elevated above the fixed background */}
+      <div className="relative max-w-2xl mx-auto animate-fade-in" style={{ zIndex: 2 }}>
+      {/* Page header — frosted card so title text reads against the dark night sky */}
       <div className="flex items-start gap-3 mb-6 bg-surface/80 backdrop-blur-sm rounded-xl px-4 py-3">
         <span className="mt-0.5 w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
           <ClipboardListIcon />
@@ -133,8 +136,7 @@ export default function BookingsPage() {
           onPageChange={(p) => setPage(p)}
         />
       )}
-    </div>
-      </div> {/* end scrollable content */}
-    </div>
+      </div> {/* end booking content */}
+    </>
   );
 }

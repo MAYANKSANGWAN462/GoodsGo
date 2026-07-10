@@ -96,14 +96,21 @@ export default function ChatPage() {
   }
 
   return (
-    <div
-      className="relative overflow-hidden rounded-xl border border-border shadow-sm animate-fade-in"
-      style={{ height: 'calc(100vh - 9rem)' }}
-    >
-      <ChatBackground />
+    <>
+      {/* Background: fixed to the full viewport below the sticky navbar (h-14 = 3.5rem).
+          pointer-events-none so it never intercepts clicks. */}
+      <div
+        className="fixed left-0 right-0 bottom-0 overflow-hidden pointer-events-none"
+        style={{ top: '3.5rem', zIndex: 1 }}
+      >
+        <ChatBackground />
+      </div>
 
-      {/* Chat panels — sit above the scenic background */}
-      <div className="relative z-10 flex h-full overflow-hidden">
+      {/* Chat component — exactly the original styling, elevated above the fixed background */}
+      <div
+        className="relative flex overflow-hidden rounded-xl border border-border bg-surface shadow-sm animate-fade-in"
+        style={{ height: 'calc(100vh - 9rem)', zIndex: 2 }}
+      >
 
       {/* ── Conversation list panel ─────────────────────────────────── */}
       <div
@@ -206,7 +213,7 @@ export default function ChatPage() {
         )}
       </div>
 
-      </div> {/* end z-10 flex wrapper */}
-    </div>
+      </div> {/* end chat component */}
+    </>
   );
 }
