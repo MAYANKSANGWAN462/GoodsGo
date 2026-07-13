@@ -17,6 +17,11 @@ const { apiLimiter } = require('./middleware/rateLimiter.middleware');
 // ─── Create Express Application ───────────────────────────────────────────────
 const app = express();
 
+// Trust Railway's / Render's / Heroku's reverse proxy so that req.ip resolves
+// to the real client IP (not the proxy's internal IP). Required for rate
+// limiting to be per-client, and for secure-cookie detection via X-Forwarded-Proto.
+app.set('trust proxy', 1);
+
 // ─── MIDDLEWARE CHAIN ─────────────────────────────────────────────────────────
 // ORDER MATTERS. Do not rearrange without understanding the implications.
 
