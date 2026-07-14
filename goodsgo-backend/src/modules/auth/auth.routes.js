@@ -144,4 +144,38 @@ router.post(
   authController.adminLogin
 );
 
+/**
+ * GET /api/v1/auth/diagnose-email
+ * Temporary debug endpoint — shows SMTP config status and tests the connection.
+ * Remove after email is confirmed working.
+ */
+router.get('/diagnose-email', async (req, res) => {
+  const { getTransporter, verifyEmailConnection, resetTransporter } = require('../../config/email');
+
+  // Reset singleton so it re-reads env vars on this request
+  resetTransporter();
+
+  const config = {
+    EMAIL_HOST:   process.env.EMAIL_HOST   || '(not set)',
+    EMAIL_PORT:   process.env.EMAIL_PORT   || '(not set)',
+    EMAIL_SECURE: process.env.EMAIL_SECURE || '(not set)',
+    EMAIL_USER:   process.env.EMAIL_USER   || '(not set)',
+    EMAIL_PASS:   process.env.EMAIL_PASS   ? `(set, ${process.env.EMAIL_PASS.length} chars)` : '(not set)',
+    EMAIL_FROM:   process.env.EMAIL_FROM   || '(not set — will fall back to EMAIL_USER)',
+    NODE_ENV:     process.env.NODE_ENV     || '(not set)',
+  };
+
+  let smtpResult = null;
+  let smtpError  = null;
+  try {
+    const transporter = getTransporter();
+    await transporter.verify();
+    smtpResult = 'SMTP connection verified successfully';
+  } catch (err) {
+    smtpError = { message: err.message, code: err.code, responseCode: err.responseCode };
+  }
+
+  res.json({ config, smtpResult, smtpError });
+});
+
 module.exports = router;
