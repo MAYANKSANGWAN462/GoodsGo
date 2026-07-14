@@ -169,10 +169,15 @@ router.get('/diagnose-email', async (req, res) => {
   let smtpError  = null;
   try {
     const transporter = getTransporter();
-    await transporter.verify();
+    await Promise.race([
+      transporter.verify(),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('TIMEOUT: No response from SMTP server after 10s — port 587 is likely blocked by Railway')), 10000)
+      )
+    ]);
     smtpResult = 'SMTP connection verified successfully';
   } catch (err) {
-    smtpError = { message: err.message, code: err.code, responseCode: err.responseCode };
+    smtpError = { message: err.message, code: err.code || null, responseCode: err.responseCode || null };
   }
 
   res.json({ config, smtpResult, smtpError });
