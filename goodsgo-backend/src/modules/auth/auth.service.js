@@ -34,10 +34,14 @@ const REFRESH_TOKEN_COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
  * @param {string} token - Plaintext refresh JWT
  */
 function setRefreshTokenCookie(res, token) {
+  const isProd = process.env.NODE_ENV === 'production';
   res.cookie('refresh_token', token, {
     httpOnly: true,
-    secure:   process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    secure:   isProd,
+    // 'none' is required when frontend and backend are on different domains
+    // (Vercel vs Railway). 'strict' silently drops the cookie on cross-site requests.
+    // Requires secure:true in production, which is always the case on Railway HTTPS.
+    sameSite: isProd ? 'none' : 'strict',
     maxAge:   REFRESH_TOKEN_COOKIE_MAX_AGE_MS,
     path:     '/api/v1/auth'
   });
@@ -50,10 +54,11 @@ function setRefreshTokenCookie(res, token) {
  * @param {import('express').Response} res
  */
 function clearRefreshTokenCookie(res) {
+  const isProd = process.env.NODE_ENV === 'production';
   res.clearCookie('refresh_token', {
     httpOnly: true,
-    secure:   process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    secure:   isProd,
+    sameSite: isProd ? 'none' : 'strict',
     path:     '/api/v1/auth'
   });
 }
