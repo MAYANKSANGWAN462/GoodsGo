@@ -77,6 +77,10 @@ server.listen(PORT, () => {
   console.log(`  Port        : ${PORT}`);
   console.log(`  Health      : http://localhost:${PORT}/health`);
   console.log('─────────────────────────────────────────');
+
+  // Verify SMTP credentials on startup so misconfiguration shows in logs immediately.
+  const { verifyEmailConnection } = require('./src/config/email');
+  verifyEmailConnection();
 });
 
 // ─── Graceful Shutdown ────────────────────────────────────────────────────────

@@ -50,26 +50,17 @@ function getTransporter() {
   _transporter = nodemailer.createTransport({
     host,
     port,
-    secure, // true for port 465, false for 587 (STARTTLS upgrades after connect)
-    auth: {
-      user,
-      pass
-    },
+    secure,
+    auth: { user, pass },
     tls: {
-      // In production, enforce valid certificates (prevents MITM attacks).
-      // In development/test, allow self-signed certs for local SMTP servers.
       rejectUnauthorized: process.env.NODE_ENV === 'production'
-    },
-    // Pool SMTP connections for better throughput on high-volume sending.
-    // For MVP (< 100 emails/day), this is optional but good practice.
-    pool: true,
-    maxConnections: 5,
-    maxMessages: 100
+    }
+    // No pool — Gmail closes idle SMTP connections after ~30s, causing pooled
+    // connections to go stale and drop emails silently. One connection per send
+    // is slower but reliable for low-volume transactional email.
   });
 
-  if (process.env.NODE_ENV === 'development' && host) {
-    console.log(`[Email] Transporter created — host: ${host}:${port} | user: ${user}`);
-  }
+  console.log(`[Email] Transporter created — host: ${host}:${port} | user: ${user}`);
 
   return _transporter;
 }
