@@ -40,7 +40,7 @@ app.use(
         frameSrc: ["'self'", 'https://api.razorpay.com', 'https://*.razorpay.com'],
         connectSrc: [
           "'self'",
-          process.env.FRONTEND_URL || 'http://localhost:5173',
+          (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, ''),
           'https://api.razorpay.com',
           'https://lumberjack.razorpay.com'
         ]
@@ -55,10 +55,10 @@ app.use(
 //    Defines which origins can make requests to this API.
 //    Must be before routes so preflight OPTIONS requests are handled correctly.
 const ALLOWED_ORIGINS = [
-  process.env.FRONTEND_URL,
-  'http://localhost:5173', // Vite default
-  'http://localhost:3000'  // Alternative dev port
-].filter(Boolean); // Remove any undefined values
+  process.env.FRONTEND_URL?.replace(/\/$/, ''), // strip accidental trailing slash
+  'http://localhost:5173',
+  'http://localhost:3000'
+].filter(Boolean);
 
 app.use(
   cors({
