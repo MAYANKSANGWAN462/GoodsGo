@@ -155,29 +155,50 @@ router.get('/diagnose-email', async (req, res) => {
   // Reset singleton so it re-reads env vars on this request
   resetTransporter();
 
+  const usingBrevo = Boolean(process.env.BREVO_API_KEY);
+
   const config = {
-    EMAIL_HOST:   process.env.EMAIL_HOST   || '(not set)',
-    EMAIL_PORT:   process.env.EMAIL_PORT   || '(not set)',
-    EMAIL_SECURE: process.env.EMAIL_SECURE || '(not set)',
-    EMAIL_USER:   process.env.EMAIL_USER   || '(not set)',
-    EMAIL_PASS:   process.env.EMAIL_PASS   ? `(set, ${process.env.EMAIL_PASS.length} chars)` : '(not set)',
-    EMAIL_FROM:   process.env.EMAIL_FROM   || '(not set — will fall back to EMAIL_USER)',
-    NODE_ENV:     process.env.NODE_ENV     || '(not set)',
+    provider:      usingBrevo ? 'Brevo HTTP API' : 'SMTP (nodemailer)',
+    BREVO_API_KEY: process.env.BREVO_API_KEY ? `(set, ${process.env.BREVO_API_KEY.length} chars)` : '(not set — falling back to SMTP)',
+    EMAIL_HOST:    process.env.EMAIL_HOST   || '(not set)',
+    EMAIL_PORT:    process.env.EMAIL_PORT   || '(not set)',
+    EMAIL_SECURE:  process.env.EMAIL_SECURE || '(not set)',
+    EMAIL_USER:    process.env.EMAIL_USER   || '(not set)',
+    EMAIL_PASS:    process.env.EMAIL_PASS   ? `(set, ${process.env.EMAIL_PASS.length} chars)` : '(not set)',
+    EMAIL_FROM:    process.env.EMAIL_FROM   || '(not set — will fall back to EMAIL_USER)',
+    NODE_ENV:      process.env.NODE_ENV     || '(not set)',
   };
 
   let smtpResult = null;
   let smtpError  = null;
-  try {
-    const transporter = getTransporter();
-    await Promise.race([
-      transporter.verify(),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('TIMEOUT: No response from SMTP server after 10s — port 587 is likely blocked by Railway')), 10000)
-      )
-    ]);
-    smtpResult = 'SMTP connection verified successfully';
-  } catch (err) {
-    smtpError = { message: err.message, code: err.code || null, responseCode: err.responseCode || null };
+
+  if (usingBrevo) {
+    // Brevo has no handshake to verify — check the key is accepted by the API.
+    try {
+      const apiRes = await fetch('https://api.brevo.com/v3/account', {
+        headers: { 'api-key': process.env.BREVO_API_KEY, accept: 'application/json' }
+      });
+      if (apiRes.ok) {
+        smtpResult = 'Brevo API key is valid — emails will send over HTTPS (no SMTP ports needed)';
+      } else {
+        smtpError = { message: `Brevo API rejected the key (HTTP ${apiRes.status}) — regenerate it at brevo.com`, code: null, responseCode: apiRes.status };
+      }
+    } catch (err) {
+      smtpError = { message: err.message, code: err.code || null, responseCode: null };
+    }
+  } else {
+    try {
+      const transporter = getTransporter();
+      await Promise.race([
+        transporter.verify(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('TIMEOUT: No response from SMTP server after 10s — outbound SMTP ports are likely blocked by the hosting provider. Set BREVO_API_KEY to send over HTTPS instead.')), 10000)
+        )
+      ]);
+      smtpResult = 'SMTP connection verified successfully';
+    } catch (err) {
+      smtpError = { message: err.message, code: err.code || null, responseCode: err.responseCode || null };
+    }
   }
 
   res.json({ config, smtpResult, smtpError });
