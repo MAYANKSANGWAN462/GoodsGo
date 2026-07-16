@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useAdminUsers, useAdminPosts, useAdminReports, useAdminDisputes } from '../../hooks/useAdmin';
 import Spinner from '../../components/common/Spinner';
 import Card from '../../components/common/Card';
@@ -103,9 +104,9 @@ export default function AdminDashboardPage() {
             { label: 'Payment Actions',  href: '/admin/payments', icon: '💳', urgent: false },
             { label: 'Review Moderation', href: '/admin/reviews', icon: '⭐', urgent: false },
           ].map(({ label, href, icon, urgent }) => (
-            <a
+            <Link
               key={href + label}
-              href={href}
+              to={href}
               className={[
                 'flex items-center gap-2 p-3 rounded-lg border text-sm font-medium transition-colors',
                 urgent
@@ -115,7 +116,7 @@ export default function AdminDashboardPage() {
             >
               <span>{icon}</span>
               {label}
-            </a>
+            </Link>
           ))}
         </div>
       </Card>
