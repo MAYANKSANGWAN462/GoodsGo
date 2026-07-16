@@ -2,7 +2,7 @@
 
 const fs   = require('fs');
 const path = require('path');
-const { getTransporter } = require('../config/email');
+const { sendMail } = require('../config/email');
 
 // ─── Template Engine ──────────────────────────────────────────────────────────
 
@@ -65,21 +65,14 @@ function renderTemplate(templateName, variables) {
  * @throws {Error} On SMTP transport failure
  */
 async function sendEmail({ to, subject, templateName, variables = {}, textFallback = '' }) {
-  const transporter = getTransporter();
-  const html        = renderTemplate(templateName, variables);
+  const html = renderTemplate(templateName, variables);
 
-  const mailOptions = {
-    // EMAIL_FROM should always be set in production.
-    // If not, fall back to EMAIL_USER (the authenticated Gmail address) so Gmail
-    // does not reject the message for mismatched sender domain.
-    from:    process.env.EMAIL_FROM ||
-             (process.env.EMAIL_USER ? `"${APP_NAME}" <${process.env.EMAIL_USER}>` : `"${APP_NAME}" <noreply@goodsgo.in>`),
+  await sendMail({
+    from:    process.env.EMAIL_FROM || `"${APP_NAME}" <onboarding@resend.dev>`,
     to,
     subject,
     ...(html ? { html } : { text: textFallback })
-  };
-
-  await transporter.sendMail(mailOptions);
+  });
 }
 
 // ─── Named Convenience Wrappers ───────────────────────────────────────────────

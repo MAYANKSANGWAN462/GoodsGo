@@ -150,37 +150,17 @@ router.post(
  * Remove after email is confirmed working.
  */
 router.get('/diagnose-email', async (req, res) => {
-  const { getTransporter, verifyEmailConnection, resetTransporter } = require('../../config/email');
-
-  // Reset singleton so it re-reads env vars on this request
+  const { resetTransporter, verifyEmailConnection } = require('../../config/email');
   resetTransporter();
 
   const config = {
-    EMAIL_HOST:   process.env.EMAIL_HOST   || '(not set)',
-    EMAIL_PORT:   process.env.EMAIL_PORT   || '(not set)',
-    EMAIL_SECURE: process.env.EMAIL_SECURE || '(not set)',
-    EMAIL_USER:   process.env.EMAIL_USER   || '(not set)',
-    EMAIL_PASS:   process.env.EMAIL_PASS   ? `(set, ${process.env.EMAIL_PASS.length} chars)` : '(not set)',
-    EMAIL_FROM:   process.env.EMAIL_FROM   || '(not set — will fall back to EMAIL_USER)',
-    NODE_ENV:     process.env.NODE_ENV     || '(not set)',
+    RESEND_API_KEY: process.env.RESEND_API_KEY ? `(set, ${process.env.RESEND_API_KEY.length} chars)` : '(NOT SET — this is required)',
+    EMAIL_FROM:     process.env.EMAIL_FROM || '(not set — using onboarding@resend.dev fallback)',
+    NODE_ENV:       process.env.NODE_ENV   || '(not set)',
   };
 
-  let smtpResult = null;
-  let smtpError  = null;
-  try {
-    const transporter = getTransporter();
-    await Promise.race([
-      transporter.verify(),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('TIMEOUT: No response from SMTP server after 10s — port 587 is likely blocked by Railway')), 10000)
-      )
-    ]);
-    smtpResult = 'SMTP connection verified successfully';
-  } catch (err) {
-    smtpError = { message: err.message, code: err.code || null, responseCode: err.responseCode || null };
-  }
-
-  res.json({ config, smtpResult, smtpError });
+  const ready = await verifyEmailConnection();
+  res.json({ config, ready, note: ready ? 'Resend is configured. Send a test email to confirm delivery.' : 'RESEND_API_KEY is missing — add it to Railway Variables.' });
 });
 
 module.exports = router;
