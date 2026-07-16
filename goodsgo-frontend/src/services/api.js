@@ -147,7 +147,15 @@ adminApi.interceptors.request.use((config) => {
 adminApi.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    // A 401 from the admin login attempt itself means wrong credentials —
+    // let the login form show the error. Only expired/invalid sessions on
+    // other admin endpoints should force a redirect, and never redirect
+    // when already on /admin/login (prevents reload loops).
+    if (
+      error.response?.status === 401 &&
+      !error.config?.url?.includes('/auth/admin/login') &&
+      !window.location.pathname.startsWith('/admin/login')
+    ) {
       useAdminStore.getState().clearAdminAuth();
       window.location.href = '/admin/login';
     }

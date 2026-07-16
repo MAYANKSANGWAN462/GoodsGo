@@ -1,15 +1,18 @@
-import { api, adminApi, unwrapResponse } from './api';
+import { adminApi, unwrapResponse } from './api';
 
 // ── Admin Auth ──────────────────────────────────────────────────────────────
 
 /**
  * adminLogin — POST /auth/admin/login
  * Returns { adminToken, admin } on success.
+ * Must use adminApi, NOT the user api client — the user client's 401
+ * interceptor attempts a user-token refresh and hard-redirects to /login,
+ * hijacking a failed admin login onto the user login page.
  * @param {string} email
  * @param {string} password
  */
 export async function adminLogin(email, password) {
-  const res = await api.post('/auth/admin/login', { email, password });
+  const res = await adminApi.post('/auth/admin/login', { email, password });
   return unwrapResponse(res);
 }
 
