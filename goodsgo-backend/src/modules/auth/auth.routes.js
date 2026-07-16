@@ -181,7 +181,11 @@ router.get('/diagnose-email', async (req, res) => {
       if (apiRes.ok) {
         smtpResult = 'Brevo API key is valid — emails will send over HTTPS (no SMTP ports needed)';
       } else {
-        smtpError = { message: `Brevo API rejected the key (HTTP ${apiRes.status}) — regenerate it at brevo.com`, code: null, responseCode: apiRes.status };
+        // Surface Brevo's own error body — it distinguishes "Key not found"
+        // (wrong/incomplete key) from "unrecognised IP address" (Authorized
+        // IPs restriction enabled in Brevo Security settings).
+        const body = await apiRes.text().catch(() => '(no body)');
+        smtpError = { message: `Brevo API rejected the key (HTTP ${apiRes.status}): ${body}`, code: null, responseCode: apiRes.status };
       }
     } catch (err) {
       smtpError = { message: err.message, code: err.code || null, responseCode: null };
