@@ -82,7 +82,7 @@ function ReportsTab() {
   const resolveMutation = useResolveReport();
   const dismissMutation = useDismissReport();
 
-  const reports    = data?.data?.reports ?? [];
+  const reports    = data?.data ?? [];
   const totalPages = data?.meta?.totalPages ?? 1;
 
   function handleResolve() {
@@ -253,7 +253,7 @@ function DisputesTab() {
   const { data, isLoading, isError } = useAdminDisputes({ status: status || undefined, page, limit: 20 });
   const resolveMutation = useResolveDispute();
 
-  const disputes   = data?.data?.disputes ?? [];
+  const disputes   = data?.data ?? [];
   const totalPages = data?.meta?.totalPages ?? 1;
 
   function handleResolve() {

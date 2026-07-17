@@ -95,7 +95,7 @@ export default function AdminPostsPage() {
   const hideMutation    = useHidePost();
   const restoreMutation = useRestorePost();
 
-  const posts      = data?.data?.posts ?? [];
+  const posts      = data?.data ?? [];
   const totalPages = data?.meta?.totalPages ?? 1;
 
   return (

@@ -98,7 +98,7 @@ export default function AdminUsersPage() {
   const suspendMutation    = useSuspendUser();
   const reactivateMutation = useReactivateUser();
 
-  const users      = data?.data?.users ?? [];
+  const users      = data?.data ?? [];
   const totalPages = data?.meta?.totalPages ?? 1;
 
   function handleSuspendConfirm() {
