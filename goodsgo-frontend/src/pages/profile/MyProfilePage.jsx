@@ -5,6 +5,7 @@ import { useMyPosts } from '../../hooks/usePosts';
 import { useMyReviews } from '../../hooks/useReviews';
 import ProfileHeader from '../../components/profile/ProfileHeader';
 import ProfileStats from '../../components/profile/ProfileStats';
+import ProfileBackground from '../../components/profile/ProfileBackground';
 import PostList from '../../components/posts/PostList';
 import ReviewList from '../../components/reviews/ReviewList';
 import Button from '../../components/common/Button';
@@ -93,7 +94,18 @@ export default function MyProfilePage() {
   const myReviewsMeta = myReviewsData?.meta ?? null;
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6 space-y-6 animate-fade-in">
+    <>
+      {/* Background: fixed to the full viewport below the sticky navbar (h-14 = 3.5rem).
+          pointer-events-none so it never intercepts clicks. */}
+      <div
+        className="fixed left-0 right-0 bottom-0 overflow-hidden pointer-events-none"
+        style={{ top: '3.5rem', zIndex: 1 }}
+      >
+        <ProfileBackground />
+      </div>
+
+      {/* Profile content — elevated above the fixed background */}
+      <div className="relative max-w-3xl mx-auto px-4 py-6 space-y-6 animate-fade-in" style={{ zIndex: 2 }}>
       {/* Profile header card with subtle gradient accent */}
       <div
         className="bg-surface border border-border rounded-xl shadow-sm overflow-hidden"
@@ -151,8 +163,8 @@ export default function MyProfilePage() {
         </Button>
       </div>
 
-      {/* Tab navigation */}
-      <div className="border-b border-border">
+      {/* Tab navigation — frosted so tab labels read against the night scene */}
+      <div className="border-b border-border bg-surface/80 backdrop-blur-sm rounded-t-xl px-4 pt-2">
         <nav className="-mb-px flex gap-0" aria-label="Profile sections">
           {TABS.map((tab) => (
             <button
@@ -209,6 +221,7 @@ export default function MyProfilePage() {
           />
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

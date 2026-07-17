@@ -5,6 +5,7 @@ import { useFeed } from '../../hooks/usePosts';
 import PostList from '../../components/posts/PostList';
 import PostFilters from '../../components/posts/PostFilters';
 import Button from '../../components/common/Button';
+import MarketplaceBackground from '../../components/marketplace/MarketplaceBackground';
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 
@@ -157,9 +158,20 @@ export default function MarketplacePage() {
   }
 
   return (
-    <div className="animate-fade-in">
-      {/* ── Page header ──────────────────────────────────────────── */}
-      <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
+    <>
+      {/* Background: fixed to the full viewport below the sticky navbar (h-14 = 3.5rem).
+          pointer-events-none so it never intercepts clicks. */}
+      <div
+        className="fixed left-0 right-0 bottom-0 overflow-hidden pointer-events-none"
+        style={{ top: '3.5rem', zIndex: 1 }}
+      >
+        <MarketplaceBackground />
+      </div>
+
+      {/* Marketplace content — elevated above the fixed background */}
+      <div className="relative animate-fade-in" style={{ zIndex: 2 }}>
+      {/* ── Page header — frosted card so title text reads against the sky ── */}
+      <div className="flex items-center justify-between mb-5 gap-3 flex-wrap bg-surface/80 backdrop-blur-sm rounded-xl px-4 py-3">
         <div className="flex items-center gap-3 min-w-0">
           {/* Icon */}
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
@@ -240,6 +252,7 @@ export default function MarketplacePage() {
           />
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

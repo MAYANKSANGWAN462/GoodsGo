@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="50 178 415 150" width="32" height="32" role="img" aria-label="GOODS GO">
+  <!-- speed indicator pills -->
+  <g fill="#003082">
+    <rect x="150" y="182" width="96" height="16" rx="8"/>
+    <rect x="178" y="204" width="34" height="16" rx="8"/>
+  </g>
+  <g fill="#D31905">
+    <rect x="104" y="204" width="62" height="16" rx="8"/>
+    <rect x="246" y="204" width="46" height="16" rx="8"/>
+  </g>
+
+  <!-- left speed streaks -->
+  <rect x="58" y="233" width="58" height="3" rx="1.5" fill="#003082"/>
+  <rect x="50" y="245" width="66" height="3" rx="1.5" fill="#D31905"/>
+  <rect x="62" y="257" width="54" height="3" rx="1.5" fill="#003082"/>
+
+  <!-- cargo container speed lines -->
+  <g fill="#003082">
+    <rect x="130" y="231" width="200" height="6" rx="3"/>
+    <rect x="150" y="241" width="180" height="6" rx="3"/>
+    <rect x="176" y="251" width="154" height="6" rx="3"/>
+    <rect x="138" y="261" width="192" height="6" rx="3"/>
+  </g>
+
+  <!-- truck body -->
+  <g fill="#D31905">
+    <rect x="110" y="268" width="350" height="32" rx="7"/>
+    <path d="M340,300 L340,206 L426,206 L456,238 L456,300 Z"/>
+    <circle cx="232" cy="302" r="21"/>
+    <circle cx="412" cy="302" r="21"/>
+  </g>
+
+  <!-- windscreen -->
+  <path d="M430,214 L451,236 L451,258 L427,258 L427,214 Z" fill="#fff"/>
+
+  <!-- cab window dividers -->
+  <g fill="#fff">
+    <path d="M349,212 L356,212 L350,256 L343,256 Z"/>
+    <path d="M365,212 L372,212 L366,256 L359,256 Z"/>
+  </g>
+
+  <!-- wheel hubs -->
+  <circle cx="232" cy="302" r="12" fill="#fff"/>
+  <circle cx="232" cy="302" r="4.4" fill="#D31905"/>
+  <circle cx="412" cy="302" r="12" fill="#fff"/>
+  <circle cx="412" cy="302" r="4.4" fill="#D31905"/>
+</svg>

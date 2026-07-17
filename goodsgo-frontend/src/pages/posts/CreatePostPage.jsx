@@ -6,6 +6,7 @@ import { resendVerification } from '../../services/auth.service';
 import NeedTransportForm from '../../components/posts/NeedTransportForm';
 import VehicleAvailableForm from '../../components/posts/VehicleAvailableForm';
 import ReturnJourneyForm from '../../components/posts/ReturnJourneyForm';
+import PostBackground from '../../components/posts/PostBackground';
 import { useCreatePost } from '../../hooks/usePosts';
 
 const POST_TYPE_TABS = [
@@ -78,9 +79,20 @@ export default function CreatePostPage() {
   const ActiveForm = FORM_MAP[activeType];
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8 animate-fade-in">
-      {/* Page header */}
-      <div className="flex items-center gap-3 mb-6">
+    <>
+      {/* Background: fixed to the full viewport below the sticky navbar (h-14 = 3.5rem).
+          pointer-events-none so it never intercepts clicks. */}
+      <div
+        className="fixed left-0 right-0 bottom-0 overflow-hidden pointer-events-none"
+        style={{ top: '3.5rem', zIndex: 1 }}
+      >
+        <PostBackground />
+      </div>
+
+      {/* Create-post content — elevated above the fixed background */}
+      <div className="relative mx-auto max-w-2xl px-4 py-8 animate-fade-in" style={{ zIndex: 2 }}>
+      {/* Page header — frosted card so title text reads against the dusk sky */}
+      <div className="flex items-center gap-3 mb-6 bg-surface/80 backdrop-blur-sm rounded-xl px-4 py-3">
         <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
           <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -126,8 +138,8 @@ export default function CreatePostPage() {
         </div>
       )}
 
-      {/* Post type selector */}
-      <div className="mb-6">
+      {/* Post type selector — frosted so the label and translucent active tab read against the scene */}
+      <div className="mb-6 bg-surface/80 backdrop-blur-sm rounded-xl p-4">
         <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3">
           What type of post?
         </p>
@@ -174,6 +186,7 @@ export default function CreatePostPage() {
       <div className="rounded-xl border border-border bg-surface p-6 shadow-sm animate-fade-in">
         <ActiveForm onSubmit={handleSubmit} isPending={isPending} />
       </div>
-    </div>
+      </div>
+    </>
   );
 }
