@@ -155,10 +155,15 @@ router.get('/diagnose-email', async (req, res) => {
   // Reset singleton so it re-reads env vars on this request
   resetTransporter();
 
-  const usingBrevo = Boolean(process.env.BREVO_API_KEY);
+  const { isGmailApiConfigured, getGmailAccessToken } = require('../../config/email');
+  const usingGmail = isGmailApiConfigured();
+  const usingBrevo = !usingGmail && Boolean(process.env.BREVO_API_KEY);
 
   const config = {
-    provider:      usingBrevo ? 'Brevo HTTP API' : 'SMTP (nodemailer)',
+    provider:      usingGmail ? 'Gmail API (OAuth2)' : usingBrevo ? 'Brevo HTTP API' : 'SMTP (nodemailer)',
+    GMAIL_CLIENT_ID:     process.env.GMAIL_CLIENT_ID     ? '(set)' : '(not set)',
+    GMAIL_CLIENT_SECRET: process.env.GMAIL_CLIENT_SECRET ? '(set)' : '(not set)',
+    GMAIL_REFRESH_TOKEN: process.env.GMAIL_REFRESH_TOKEN ? '(set)' : '(not set)',
     BREVO_API_KEY: process.env.BREVO_API_KEY ? `(set, ${process.env.BREVO_API_KEY.length} chars)` : '(not set — falling back to SMTP)',
     EMAIL_HOST:    process.env.EMAIL_HOST   || '(not set)',
     EMAIL_PORT:    process.env.EMAIL_PORT   || '(not set)',
@@ -172,7 +177,15 @@ router.get('/diagnose-email', async (req, res) => {
   let smtpResult = null;
   let smtpError  = null;
 
-  if (usingBrevo) {
+  if (usingGmail) {
+    // Prove the refresh token works by exchanging it for an access token.
+    try {
+      await getGmailAccessToken();
+      smtpResult = 'Gmail API OAuth is valid — emails will send through Google servers over HTTPS';
+    } catch (err) {
+      smtpError = { message: err.message, code: null, responseCode: null };
+    }
+  } else if (usingBrevo) {
     // Brevo has no handshake to verify — check the key is accepted by the API.
     try {
       const apiRes = await fetch('https://api.brevo.com/v3/account', {

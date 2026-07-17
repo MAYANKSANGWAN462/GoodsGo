@@ -126,14 +126,133 @@ async function sendViaBrevo({ from, to, subject, html, text }) {
   return res.json();
 }
 
+// ─── Gmail API (OAuth2 over HTTPS) ────────────────────────────────────────────
+// Sends through Google's own servers via the Gmail REST API on port 443, so it
+// works on hosts that block SMTP AND gets perfect deliverability for a
+// gmail.com sender (SPF/DKIM/DMARC all align because Google itself sends it).
+//
+// Required env vars (all three, or the Gmail path is skipped):
+//   GMAIL_CLIENT_ID     — OAuth client ID from Google Cloud Console
+//   GMAIL_CLIENT_SECRET — OAuth client secret
+//   GMAIL_REFRESH_TOKEN — long-lived token minted via OAuth playground
+// Sender address is EMAIL_USER (the Google account that authorized the app).
+//
+// Daily quota: 500 recipients/day for a consumer Gmail account — ample here.
+
+let _gmailAccess = { token: null, expiresAt: 0 };
+
+/**
+ * getGmailAccessToken — Exchanges the refresh token for a short-lived access
+ * token, cached until ~5 minutes before expiry.
+ *
+ * @returns {Promise<string>} OAuth2 access token
+ * @throws {Error} If Google rejects the refresh token
+ */
+async function getGmailAccessToken() {
+  if (_gmailAccess.token && Date.now() < _gmailAccess.expiresAt) {
+    return _gmailAccess.token;
+  }
+
+  const res = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id:     process.env.GMAIL_CLIENT_ID,
+      client_secret: process.env.GMAIL_CLIENT_SECRET,
+      refresh_token: process.env.GMAIL_REFRESH_TOKEN,
+      grant_type:    'refresh_token'
+    })
+  });
+
+  const body = await res.json();
+  if (!res.ok || !body.access_token) {
+    throw new Error(`Gmail OAuth token refresh failed (HTTP ${res.status}): ${body.error_description || body.error || 'unknown error'}`);
+  }
+
+  _gmailAccess = {
+    token: body.access_token,
+    expiresAt: Date.now() + (body.expires_in - 300) * 1000
+  };
+  return _gmailAccess.token;
+}
+
+/**
+ * buildMimeMessage — Assembles a minimal RFC 2822 message for the Gmail API.
+ * Subject is RFC 2047 base64-encoded so non-ASCII characters are safe.
+ *
+ * @param {{ from: string, to: string, subject: string, html?: string, text?: string }} opts
+ * @returns {string} base64url-encoded raw message
+ */
+function buildMimeMessage({ from, to, subject, html, text }) {
+  const encodedSubject = `=?UTF-8?B?${Buffer.from(subject, 'utf8').toString('base64')}?=`;
+  const lines = [
+    `From: ${from}`,
+    `To: ${to}`,
+    `Subject: ${encodedSubject}`,
+    'MIME-Version: 1.0',
+    html
+      ? 'Content-Type: text/html; charset=UTF-8'
+      : 'Content-Type: text/plain; charset=UTF-8',
+    '',
+    html || text || ''
+  ];
+  return Buffer.from(lines.join('\r\n'), 'utf8')
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+/**
+ * sendViaGmailApi — Sends one email through the Gmail REST API.
+ *
+ * @param {{ from: string, to: string, subject: string, html?: string, text?: string }} opts
+ * @returns {Promise<object>} Gmail API response (contains message id)
+ * @throws {Error} On non-2xx API response
+ */
+async function sendViaGmailApi(opts) {
+  const accessToken = await getGmailAccessToken();
+
+  const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${accessToken}`,
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify({ raw: buildMimeMessage(opts) })
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Gmail API send failed (HTTP ${res.status}): ${body}`);
+  }
+
+  return res.json();
+}
+
+/**
+ * isGmailApiConfigured — All three Gmail OAuth env vars are present.
+ * @returns {boolean}
+ */
+function isGmailApiConfigured() {
+  return Boolean(
+    process.env.GMAIL_CLIENT_ID &&
+    process.env.GMAIL_CLIENT_SECRET &&
+    process.env.GMAIL_REFRESH_TOKEN
+  );
+}
+
 /**
  * sendMail — Provider-agnostic email dispatch.
- * Brevo HTTP API when BREVO_API_KEY is set; SMTP transporter otherwise.
+ * Priority: Gmail API → Brevo HTTP API → SMTP transporter.
  *
  * @param {{ from: string, to: string, subject: string, html?: string, text?: string }} mailOptions
  * @returns {Promise<object>}
  */
 async function sendMail(mailOptions) {
+  if (isGmailApiConfigured()) {
+    return sendViaGmailApi(mailOptions);
+  }
   if (process.env.BREVO_API_KEY) {
     return sendViaBrevo(mailOptions);
   }
@@ -179,6 +298,14 @@ function resetTransporter() {
     _transporter.close();
     _transporter = null;
   }
+  _gmailAccess = { token: null, expiresAt: 0 };
 }
 
-module.exports = { getTransporter, sendMail, verifyEmailConnection, resetTransporter };
+module.exports = {
+  getTransporter,
+  sendMail,
+  getGmailAccessToken,
+  isGmailApiConfigured,
+  verifyEmailConnection,
+  resetTransporter
+};
