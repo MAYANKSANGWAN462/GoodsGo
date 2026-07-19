@@ -14,7 +14,8 @@
     "seed:categories": "node src/db/seeds/seed_goods_categories.js",
     "seed:settings": "node src/db/seeds/seed_platform_settings.js",
     "seed:admin": "node src/db/seeds/seed_admin.js",
-    "seed:all": "npm run seed:vehicles && npm run seed:categories && npm run seed:settings && npm run seed:admin"
+    "seed:all": "npm run seed:vehicles && npm run seed:categories && npm run seed:settings && npm run seed:admin",
+    "seed:demo": "node src/db/seeds/seed_demo_data.js"
   },
   "dependencies": {
     "@sentry/node": "^8.55.2",

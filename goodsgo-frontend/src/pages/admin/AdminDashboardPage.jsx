@@ -11,26 +11,32 @@ const ROLE_VARIANT = {
   moderator:   'info',
 };
 
-function StatCard({ label, value, isLoading, accent }) {
+function StatCard({ label, value, isLoading, accent, borderAccent, bgAccent, icon }) {
   return (
-    <Card padding="md">
-      <p className="text-text-muted text-sm mb-1">{label}</p>
+    <div className={`bg-surface rounded-xl p-5 border border-border border-l-4 ${borderAccent} ${bgAccent} transition-shadow hover:shadow-md`}>
+      <div className="flex items-start justify-between mb-3">
+        <p className="text-text-muted text-sm font-medium">{label}</p>
+        <span className="text-xl">{icon}</span>
+      </div>
       {isLoading ? (
         <Spinner size="sm" />
       ) : (
-        <p className={`text-3xl font-bold ${accent}`}>{value ?? '—'}</p>
+        <p className={`text-3xl font-bold tracking-tight ${accent}`}>{value ?? '—'}</p>
       )}
-    </Card>
+    </div>
   );
 }
 
 import PropTypes from 'prop-types';
 
 StatCard.propTypes = {
-  label:     PropTypes.string.isRequired,
-  value:     PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-  isLoading: PropTypes.bool,
-  accent:    PropTypes.string,
+  label:        PropTypes.string.isRequired,
+  value:        PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  isLoading:    PropTypes.bool,
+  accent:       PropTypes.string,
+  borderAccent: PropTypes.string,
+  bgAccent:     PropTypes.string,
+  icon:         PropTypes.string,
 };
 
 export default function AdminDashboardPage() {
@@ -71,24 +77,36 @@ export default function AdminDashboardPage() {
           value={totalUsers}
           isLoading={loadingUsers}
           accent="text-primary"
+          borderAccent="border-l-primary"
+          bgAccent="bg-primary/5"
+          icon="👥"
         />
         <StatCard
           label="Total Posts"
           value={totalPosts}
           isLoading={loadingPosts}
-          accent="text-blue-600"
+          accent="text-secondary"
+          borderAccent="border-l-secondary"
+          bgAccent="bg-secondary/5"
+          icon="📋"
         />
         <StatCard
           label="Pending Reports"
           value={pendingReports}
           isLoading={loadingReports}
           accent="text-warning"
+          borderAccent="border-l-warning"
+          bgAccent="bg-warning-subtle"
+          icon="🚩"
         />
         <StatCard
           label="Open Disputes"
           value={openDisputes}
           isLoading={loadingDisputes}
           accent="text-danger"
+          borderAccent="border-l-danger"
+          bgAccent="bg-danger-subtle"
+          icon="⚖️"
         />
       </div>
 
@@ -97,25 +115,25 @@ export default function AdminDashboardPage() {
         <h2 className="text-base font-semibold text-text mb-4">Quick Actions</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {[
-            { label: 'Review Reports',   href: '/admin/reports',  icon: '🚩', urgent: (pendingReports ?? 0) > 0 },
-            { label: 'Manage Users',     href: '/admin/users',    icon: '👥', urgent: false },
-            { label: 'Moderate Posts',   href: '/admin/posts',    icon: '📋', urgent: false },
-            { label: 'Review Disputes',  href: '/admin/reports',  icon: '⚖️',  urgent: (openDisputes ?? 0) > 0 },
-            { label: 'Payment Actions',  href: '/admin/payments', icon: '💳', urgent: false },
-            { label: 'Review Moderation', href: '/admin/reviews', icon: '⭐', urgent: false },
-          ].map(({ label, href, icon, urgent }) => (
+            { label: 'Review Reports',    href: '/admin/reports',  icon: '🚩', iconBg: 'bg-orange-100', urgent: (pendingReports ?? 0) > 0 },
+            { label: 'Manage Users',      href: '/admin/users',    icon: '👥', iconBg: 'bg-blue-100',   urgent: false },
+            { label: 'Moderate Posts',    href: '/admin/posts',    icon: '📋', iconBg: 'bg-purple-100', urgent: false },
+            { label: 'Review Disputes',   href: '/admin/reports',  icon: '⚖️', iconBg: 'bg-red-100',    urgent: (openDisputes ?? 0) > 0 },
+            { label: 'Payment Actions',   href: '/admin/payments', icon: '💳', iconBg: 'bg-green-100',  urgent: false },
+            { label: 'Review Moderation', href: '/admin/reviews',  icon: '⭐', iconBg: 'bg-yellow-100', urgent: false },
+          ].map(({ label, href, icon, iconBg, urgent }) => (
             <Link
               key={href + label}
               to={href}
               className={[
-                'flex items-center gap-2 p-3 rounded-lg border text-sm font-medium transition-colors',
+                'flex items-center gap-3 p-3 rounded-xl border text-sm font-medium transition-all hover:shadow-sm',
                 urgent
-                  ? 'border-warning bg-amber-50 text-warning hover:bg-amber-100'
-                  : 'border-border text-text hover:bg-surface-alt',
+                  ? 'border-warning/40 bg-warning-subtle text-text hover:border-warning/60'
+                  : 'border-border bg-surface text-text hover:bg-surface-alt hover:border-border-strong',
               ].join(' ')}
             >
-              <span>{icon}</span>
-              {label}
+              <span className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-base ${iconBg}`}>{icon}</span>
+              <span className="leading-tight">{label}</span>
             </Link>
           ))}
         </div>

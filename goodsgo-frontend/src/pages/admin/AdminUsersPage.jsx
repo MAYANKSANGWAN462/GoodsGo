@@ -149,7 +149,7 @@ export default function AdminUsersPage() {
       ) : users.length === 0 ? (
         <EmptyState title="No users found" message="Try adjusting your search or filters." />
       ) : (
-        <div className="bg-white rounded-xl border border-border overflow-x-auto">
+        <div className="bg-surface rounded-xl border border-border overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-border bg-surface-alt text-text-muted text-xs font-semibold uppercase tracking-wide">

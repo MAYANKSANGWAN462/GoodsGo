@@ -42,15 +42,22 @@ export default function AdminLoginPage() {
   });
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-900 px-4">
-      <div className="bg-white rounded-2xl p-8 w-full max-w-sm shadow-xl">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#071120] via-[#0d2151] to-[#071120] px-4">
+      <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
+        {/* Red top accent bar */}
+        <div className="h-1 w-full bg-gradient-to-r from-primary via-primary-light to-primary" />
+
+        <div className="p-8">
         {/* Header */}
         <div className="text-center mb-6">
-          <span className="text-primary font-bold text-2xl">GoodsGo</span>
-          <p className="text-text-muted text-sm mt-1">Admin Panel</p>
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 mb-3">
+            <span className="text-primary font-bold text-xl">G</span>
+          </div>
+          <p className="text-text font-bold text-xl">GoodsGo</p>
+          <p className="text-text-muted text-sm mt-0.5">Admin Panel</p>
         </div>
 
-        <h1 className="text-xl font-bold text-text mb-6 text-center">Sign in to Admin</h1>
+        <h1 className="text-lg font-semibold text-text mb-6 text-center">Sign in to your account</h1>
 
         <form onSubmit={handleSubmit((data) => mutation.mutate(data))} noValidate>
           <div className="space-y-4">
@@ -85,6 +92,7 @@ export default function AdminLoginPage() {
         <p className="text-center text-xs text-text-muted mt-6">
           This area is restricted to GoodsGo administrators.
         </p>
+        </div>
       </div>
     </div>
   );

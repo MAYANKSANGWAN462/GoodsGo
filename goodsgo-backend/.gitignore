@@ -42,6 +42,9 @@ temp/
 # Explicitly allow migration files
 !src/db/migrations/*.sql
 
+# Seed / demo data — local dev only, never run against production
+src/db/seeds/
+
 # Runtime Files
 *.pid
 *.seed

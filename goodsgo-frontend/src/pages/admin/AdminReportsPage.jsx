@@ -121,7 +121,7 @@ function ReportsTab() {
       ) : reports.length === 0 ? (
         <EmptyState title="No reports found" message="Try changing the status filter." />
       ) : (
-        <div className="bg-white rounded-xl border border-border overflow-x-auto">
+        <div className="bg-surface rounded-xl border border-border overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-border bg-surface-alt text-text-muted text-xs font-semibold uppercase tracking-wide">
@@ -284,7 +284,7 @@ function DisputesTab() {
       ) : disputes.length === 0 ? (
         <EmptyState title="No disputes found" message="Try changing the status filter." />
       ) : (
-        <div className="bg-white rounded-xl border border-border overflow-x-auto">
+        <div className="bg-surface rounded-xl border border-border overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-border bg-surface-alt text-text-muted text-xs font-semibold uppercase tracking-wide">

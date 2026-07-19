@@ -36,20 +36,23 @@ function AdminSidebar({ isOpen, onClose }) {
 
       <aside
         className={[
-          'fixed top-0 left-0 h-full w-60 bg-gray-900 flex flex-col z-30',
+          'fixed top-0 left-0 h-full w-60 bg-[#0d1f3c] flex flex-col z-30',
           'transition-transform duration-200',
           isOpen ? 'translate-x-0' : '-translate-x-full',
           'lg:translate-x-0 lg:static lg:z-auto',
         ].join(' ')}
       >
         {/* Brand */}
-        <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-700">
-          <span className="text-primary font-bold text-lg">GoodsGo</span>
-          <span className="text-gray-400 text-xs font-medium uppercase tracking-wide">Admin</span>
+        <div className="flex items-center gap-2.5 px-5 py-4 border-b border-white/10">
+          <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center shrink-0">
+            <span className="text-white text-xs font-bold">G</span>
+          </div>
+          <span className="text-white font-bold text-base tracking-tight">GoodsGo</span>
+          <span className="ml-auto text-[10px] font-semibold uppercase tracking-widest text-white/30 bg-white/10 px-1.5 py-0.5 rounded">Admin</span>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+        <nav className="flex-1 overflow-y-auto py-4 px-2.5 space-y-0.5">
           {NAV_ITEMS.map(({ label, to, icon }) => (
             <NavLink
               key={to}
@@ -58,22 +61,22 @@ function AdminSidebar({ isOpen, onClose }) {
               onClick={onClose}
               className={({ isActive }) =>
                 [
-                  'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150',
                   isActive
-                    ? 'bg-primary text-white'
-                    : 'text-gray-300 hover:bg-gray-800 hover:text-white',
+                    ? 'bg-white/15 text-white shadow-sm'
+                    : 'text-white/55 hover:bg-white/8 hover:text-white/90',
                 ].join(' ')
               }
             >
-              <span className="text-base w-5 text-center">{icon}</span>
+              <span className="text-base w-5 text-center opacity-90">{icon}</span>
               {label}
             </NavLink>
           ))}
         </nav>
 
         {/* Footer */}
-        <div className="px-4 py-3 border-t border-gray-700">
-          <p className="text-gray-500 text-xs text-center">GoodsGo Admin Panel</p>
+        <div className="px-4 py-3 border-t border-white/10">
+          <p className="text-white/25 text-xs text-center tracking-wide">GoodsGo Admin v1.0</p>
         </div>
       </aside>
     </>
@@ -96,13 +99,13 @@ export default function AdminLayout() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="flex h-screen bg-surface-alt overflow-hidden">
       <AdminSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       {/* Main column */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Topbar */}
-        <header className="bg-white border-b border-border flex items-center justify-between px-4 py-3 shrink-0">
+        <header className="bg-surface border-b border-border flex items-center justify-between px-4 py-3 shrink-0 shadow-sm">
           {/* Hamburger */}
           <button
             type="button"
