@@ -43,7 +43,7 @@ export default function AdminLoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#071120] via-[#0d2151] to-[#071120] px-4">
-      <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
+      <div className="bg-surface-raised rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
         {/* Red top accent bar */}
         <div className="h-1 w-full bg-gradient-to-r from-primary via-primary-light to-primary" />
 

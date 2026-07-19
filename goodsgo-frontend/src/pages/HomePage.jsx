@@ -1,7 +1,7 @@
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ROUTES } from '../constants/routes';
 import Button from '../components/common/Button';
-import Card from '../components/common/Card';
 import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
 import HeroBackground from '../components/home/HeroBackground';
@@ -58,6 +58,70 @@ function IconArrowRight() {
   );
 }
 
+// ── Scroll-reveal primitive ───────────────────────────────────────────────────
+// Uses IntersectionObserver — fires once when element enters the viewport.
+// willChange is reset after the transition so the GPU layer is released.
+
+function ScrollReveal({ children, delay = 0, className = '' }) {
+  const ref = useRef(null);
+  const [visible, setVisible] = useState(false);
+  const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          obs.unobserve(el);
+        }
+      },
+      { threshold: 0.08, rootMargin: '0px 0px -40px 0px' },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      className={className}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'none' : 'translateY(30px)',
+        transition: `opacity 0.65s cubic-bezier(0.16,1,0.3,1) ${delay}ms, transform 0.65s cubic-bezier(0.16,1,0.3,1) ${delay}ms`,
+        willChange: done ? 'auto' : 'opacity, transform',
+      }}
+      onTransitionEnd={() => setDone(true)}
+    >
+      {children}
+    </div>
+  );
+}
+
+// ── Section header ────────────────────────────────────────────────────────────
+
+function SectionHeader({ badge, title, subtitle }) {
+  return (
+    <ScrollReveal className="text-center mb-14">
+      {badge && (
+        <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider mb-4"
+          style={{ background: 'rgba(211,25,5,0.10)', color: '#D31905' }}>
+          <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: '#D31905' }} />
+          {badge}
+        </span>
+      )}
+      <h2 className="text-3xl sm:text-4xl font-bold text-text mb-3">{title}</h2>
+      {subtitle && (
+        <p className="text-text-muted text-base sm:text-lg max-w-xl mx-auto leading-relaxed">{subtitle}</p>
+      )}
+    </ScrollReveal>
+  );
+}
+
 // ── Data ─────────────────────────────────────────────────────────────────────
 
 const STATS = [
@@ -66,46 +130,52 @@ const STATS = [
     label: 'Post Types',
     sublabel: 'Need transport, vehicle available, return journey',
     icon: <IconClipboard />,
-    color: 'bg-blue-100 text-blue-600',
+    color: '#3b82f6',
   },
   {
     value: 'Live',
     label: 'Real-time Chat',
-    sublabel: 'Instant messaging & notifications',
+    sublabel: 'Instant messaging & push notifications',
     icon: <IconChat />,
-    color: 'bg-green-100 text-green-600',
+    color: '#22c55e',
   },
   {
     value: '100%',
-    label: 'Escrow Protection',
-    sublabel: 'Funds held until delivery confirmed',
+    label: 'Escrow Protected',
+    sublabel: 'Funds held securely until delivery confirmed',
     icon: <IconShield />,
-    color: 'bg-orange-100 text-orange-600',
+    color: '#f97316',
   },
   {
     value: 'KYC',
     label: 'Verified Profiles',
     sublabel: 'Identity-verified users you can trust',
     icon: <IconBadgeCheck />,
-    color: 'bg-purple-100 text-purple-600',
+    color: '#8b5cf6',
   },
 ];
 
 const HOW_IT_WORKS = [
   {
-    step: '01',
+    step: '1',
     title: 'Post your need or offer',
-    description: 'Create a listing in minutes — whether you need goods transported or have vehicle space available.',
+    description: 'Create a listing in minutes — whether you need goods transported or have vehicle space available on a route.',
+    icon: <IconClipboard />,
+    color: '#3b82f6',
   },
   {
-    step: '02',
+    step: '2',
     title: 'Connect & negotiate',
-    description: 'Chat directly with the other party, agree on a price and logistics — no middlemen.',
+    description: 'Chat directly with the other party, agree on a fair price and logistics — no middlemen cutting in.',
+    icon: <IconChat />,
+    color: '#D31905',
   },
   {
-    step: '03',
+    step: '3',
     title: 'Pay & move goods',
-    description: 'Funds are held in escrow until both parties confirm successful delivery.',
+    description: 'Funds are held in escrow until both parties confirm successful delivery. Safe for everyone.',
+    icon: <IconShield />,
+    color: '#22c55e',
   },
 ];
 
@@ -115,32 +185,36 @@ const FEATURES = [
     title: 'Post a Transport Need',
     description: 'Need to move goods? Post your route, date, and cargo details. Transporters with available vehicles will reach out directly.',
     icon: <IconClipboard />,
-    color: 'bg-blue-50 text-blue-600',
+    color: '#3b82f6',
     link: ROUTES.CREATE_POST,
+    cta: 'Post a need',
   },
   {
     num: '02',
     title: 'Offer Vehicle Space',
     description: 'Have a truck or van with spare capacity? List your route and let people with goods book the space you already have.',
     icon: <IconTruck />,
-    color: 'bg-orange-50 text-primary',
+    color: '#D31905',
     link: ROUTES.CREATE_POST,
+    cta: 'List your vehicle',
   },
   {
     num: '03',
     title: 'Chat & Agree on Price',
-    description: 'Message directly with the other party, negotiate a fair price, and confirm all the details — no middlemen.',
+    description: 'Message directly with the other party, negotiate a fair price, and confirm all details — no middlemen.',
     icon: <IconChat />,
-    color: 'bg-green-50 text-green-600',
+    color: '#22c55e',
     link: ROUTES.MARKETPLACE,
+    cta: 'Browse listings',
   },
   {
     num: '04',
     title: 'Secure Escrow Payment',
     description: 'Money is held safely until delivery is confirmed by both parties — so neither side takes the risk alone.',
     icon: <IconShield />,
-    color: 'bg-purple-50 text-purple-600',
+    color: '#8b5cf6',
     link: ROUTES.MARKETPLACE,
+    cta: 'Learn how',
   },
 ];
 
@@ -164,11 +238,11 @@ export default function HomePage() {
             flexDirection: 'column',
             alignItems: 'flex-start',
             justifyContent: 'center',
-            padding: '0 6%',
+            padding: '0 clamp(20px, 6%, 80px)',
             zIndex: 10,
           }}
         >
-          {/* Animated badge */}
+          {/* Badge */}
           <div
             className="animate-fade-in-down"
             style={{
@@ -227,7 +301,7 @@ export default function HomePage() {
             transparently, and securely.
           </p>
 
-          {/* Primary CTA buttons */}
+          {/* CTA buttons */}
           <div
             className="animate-fade-in"
             style={{ marginTop: '28px', display: 'flex', flexWrap: 'wrap', gap: '12px', animationDelay: '200ms' }}
@@ -237,16 +311,42 @@ export default function HomePage() {
             </Link>
             {!isAuthenticated && (
               <Link to={ROUTES.REGISTER}>
-                <Button variant="secondary" size="lg">
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-2 font-semibold rounded-xl transition-all duration-200"
+                  style={{
+                    padding: '10px 22px',
+                    fontSize: '1rem',
+                    color: '#ffffff',
+                    background: 'rgba(255,255,255,0.14)',
+                    border: '1.5px solid rgba(255,255,255,0.45)',
+                    backdropFilter: 'blur(10px)',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.24)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.14)'; }}
+                >
                   Get started — it&apos;s free
-                </Button>
+                </button>
               </Link>
             )}
             {isAuthenticated && (
               <Link to={ROUTES.CREATE_POST}>
-                <Button variant="secondary" size="lg">
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-2 font-semibold rounded-xl transition-all duration-200"
+                  style={{
+                    padding: '10px 22px',
+                    fontSize: '1rem',
+                    color: '#ffffff',
+                    background: 'rgba(255,255,255,0.14)',
+                    border: '1.5px solid rgba(255,255,255,0.45)',
+                    backdropFilter: 'blur(10px)',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.24)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.14)'; }}
+                >
                   Create a post
-                </Button>
+                </button>
               </Link>
             )}
           </div>
@@ -264,20 +364,16 @@ export default function HomePage() {
               <Link
                 key={label}
                 to={to}
+                className="inline-flex items-center gap-1.5 font-semibold transition-all duration-150"
                 style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  background: 'rgba(255,255,255,0.72)',
+                  background: 'rgba(255,255,255,0.75)',
                   backdropFilter: 'blur(8px)',
-                  border: '1px solid rgba(0,0,0,0.12)',
+                  border: '1px solid rgba(0,0,0,0.10)',
                   borderRadius: '9999px',
                   padding: '6px 14px',
                   fontSize: '13px',
-                  fontWeight: 600,
                   color: '#16130F',
                   textDecoration: 'none',
-                  transition: 'background 0.15s',
                 }}
               >
                 {label} <IconArrowRight />
@@ -288,52 +384,85 @@ export default function HomePage() {
       </section>
 
       {/* ── Stats strip ──────────────────────────────────────────────────── */}
-      <section className="border-y border-border bg-surface py-10 px-4">
-        <div className="mx-auto max-w-5xl grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <section className="border-y border-border bg-surface py-12 px-4">
+        <div className="mx-auto max-w-5xl grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
           {STATS.map((stat, idx) => (
-            <div
-              key={stat.label}
-              className="animate-fade-in-up flex flex-col items-center text-center p-5 rounded-xl bg-surface border border-border shadow-sm hover:shadow-md transition-shadow"
-              style={{ animationDelay: `${idx * 70}ms` }}
-            >
-              <div className={`w-11 h-11 rounded-xl flex items-center justify-center mb-3 ${stat.color}`}>
-                {stat.icon}
+            <ScrollReveal key={stat.label} delay={idx * 80} className="h-full">
+              <div
+                className="relative overflow-hidden flex flex-col flex-1 items-center text-center p-5 sm:p-6 rounded-2xl border border-border bg-surface-raised transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+              >
+                {/* Coloured icon circle */}
+                <div
+                  className="w-13 h-13 rounded-2xl flex items-center justify-center mb-4 flex-shrink-0"
+                  style={{ background: `${stat.color}18`, color: stat.color, width: 52, height: 52 }}
+                >
+                  {stat.icon}
+                </div>
+
+                {/* Value */}
+                <span
+                  className="text-3xl font-black mb-0.5"
+                  style={{ color: stat.color }}
+                >
+                  {stat.value}
+                </span>
+
+                <span className="text-sm font-bold text-text mt-0.5">{stat.label}</span>
+                <span className="text-xs text-text-muted mt-1 leading-snug">{stat.sublabel}</span>
+
+                {/* Decorative background blob */}
+                <div
+                  className="absolute -right-5 -bottom-5 w-20 h-20 rounded-full pointer-events-none"
+                  style={{ background: stat.color, opacity: 0.06 }}
+                />
               </div>
-              <span className="text-2xl font-bold text-text">{stat.value}</span>
-              <span className="text-sm font-semibold text-text mt-0.5">{stat.label}</span>
-              <span className="text-xs text-text-muted mt-1 leading-snug">{stat.sublabel}</span>
-            </div>
+            </ScrollReveal>
           ))}
         </div>
       </section>
 
       {/* ── How it works ─────────────────────────────────────────────────── */}
       <section className="py-20 px-4 bg-surface-alt">
-        <div className="mx-auto max-w-4xl">
-          <h2 className="text-3xl font-bold text-text text-center mb-3">How GoodsGo works</h2>
-          <p className="text-text-muted text-center max-w-xl mx-auto mb-14 text-base">
-            Three simple steps to move anything, anywhere.
-          </p>
+        <div className="mx-auto max-w-5xl">
+          <SectionHeader
+            badge="Simple process"
+            title="How GoodsGo works"
+            subtitle="Three simple steps to move anything, anywhere across India."
+          />
 
-          <div className="relative grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Connecting line — desktop only */}
+          <div className="relative grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+            {/* Desktop connecting line */}
             <div
-              className="hidden md:block absolute top-9 left-[calc(16.66%+1rem)] right-[calc(16.66%+1rem)] h-px bg-border z-0"
+              className="hidden md:block absolute top-10 z-0 pointer-events-none"
+              style={{ left: 'calc(16.66% + 16px)', right: 'calc(16.66% + 16px)', height: '2px' }}
               aria-hidden="true"
-            />
+            >
+              <div className="w-full h-full" style={{ background: 'linear-gradient(90deg, #3b82f6 0%, #D31905 50%, #22c55e 100%)', opacity: 0.35, borderRadius: 9999 }} />
+            </div>
 
-            {HOW_IT_WORKS.map((step, idx) => (
-              <div
-                key={step.step}
-                className="animate-fade-in-up relative z-10 flex flex-col items-center text-center"
-                style={{ animationDelay: `${idx * 100}ms` }}
-              >
-                <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center text-white text-xl font-bold mb-4 shadow-md ring-4 ring-surface">
-                  {idx + 1}
+            {HOW_IT_WORKS.map((item, idx) => (
+              <ScrollReveal key={item.step} delay={idx * 110} className="relative z-10 h-full">
+                <div className="flex flex-col flex-1 items-center text-center p-6 rounded-2xl border border-border bg-surface-raised transition-all duration-300 hover:shadow-md hover:-translate-y-1">
+                  {/* Step circle */}
+                  <div
+                    className="w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-black mb-5 shadow-md ring-4 ring-surface flex-shrink-0"
+                    style={{ background: `linear-gradient(135deg, ${item.color}cc, ${item.color})` }}
+                  >
+                    {item.step}
+                  </div>
+
+                  {/* Icon under circle */}
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
+                    style={{ background: `${item.color}15`, color: item.color }}
+                  >
+                    {item.icon}
+                  </div>
+
+                  <h3 className="font-bold text-text text-base mb-2">{item.title}</h3>
+                  <p className="text-text-muted text-sm leading-relaxed">{item.description}</p>
                 </div>
-                <h3 className="font-semibold text-text text-base mb-2">{step.title}</h3>
-                <p className="text-text-muted text-sm leading-relaxed">{step.description}</p>
-              </div>
+              </ScrollReveal>
             ))}
           </div>
         </div>
@@ -342,48 +471,125 @@ export default function HomePage() {
       {/* ── Features ─────────────────────────────────────────────────────── */}
       <section className="py-20 px-4 bg-surface">
         <div className="mx-auto max-w-7xl">
-          <h2 className="text-3xl font-bold text-text text-center mb-3">
-            Everything you need
-          </h2>
-          <p className="text-text-muted text-center max-w-xl mx-auto mb-14 text-lg">
-            One platform — post what you need, offer what you have, get things moving.
-          </p>
+          <SectionHeader
+            badge="Everything you need"
+            title="One platform, every step"
+            subtitle="Post what you need, offer what you have, and get things moving — all in one place."
+          />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
             {FEATURES.map((feature, idx) => (
-              <div
-                key={feature.title}
-                className="animate-fade-in-up"
-                style={{ animationDelay: `${idx * 80}ms` }}
-              >
-                <Card elevation="sm" hoverable className="h-full flex flex-col gap-4 p-6">
-                  {/* Step number */}
-                  <span className="text-xs font-bold text-text-subtle tracking-widest uppercase">
-                    {feature.num}
-                  </span>
+              <ScrollReveal key={feature.title} delay={idx * 90} className="h-full">
+                <div
+                  className="group relative overflow-hidden flex flex-col flex-1 rounded-2xl border border-border bg-surface-raised transition-all duration-300 hover:shadow-lg hover:-translate-y-1.5"
+                  style={{ borderTopWidth: 3, borderTopColor: feature.color }}
+                >
+                  <div className="p-6 flex flex-col flex-1 gap-4">
+                    {/* Step number */}
+                    <span
+                      className="text-xs font-bold uppercase tracking-widest"
+                      style={{ color: feature.color }}
+                    >
+                      {feature.num}
+                    </span>
 
+                    {/* Icon */}
+                    <div
+                      className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-300 group-hover:scale-110"
+                      style={{ background: `${feature.color}16`, color: feature.color }}
+                    >
+                      {feature.icon}
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 flex flex-col gap-2">
+                      <h3 className="font-bold text-text text-base">{feature.title}</h3>
+                      <p className="text-text-muted text-sm leading-relaxed flex-1">
+                        {feature.description}
+                      </p>
+                    </div>
+
+                    {/* CTA link */}
+                    <Link
+                      to={feature.link}
+                      className="inline-flex items-center gap-1.5 text-sm font-semibold mt-auto transition-all duration-200 group-hover:gap-2.5"
+                      style={{ color: feature.color }}
+                    >
+                      {feature.cta} <IconArrowRight />
+                    </Link>
+                  </div>
+
+                  {/* Decorative bottom-right blob */}
+                  <div
+                    className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full pointer-events-none transition-opacity duration-300 opacity-0 group-hover:opacity-100"
+                    style={{ background: `${feature.color}10` }}
+                  />
+                </div>
+              </ScrollReveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Why trust GoodsGo ────────────────────────────────────────────── */}
+      <section className="py-16 px-4 bg-surface-alt">
+        <div className="mx-auto max-w-5xl">
+          <SectionHeader
+            badge="Built for trust"
+            title="Why people choose GoodsGo"
+            subtitle="Every feature is designed to keep your money, identity, and goods safe."
+          />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+            {[
+              {
+                icon: <IconShield />,
+                color: '#f97316',
+                title: 'Escrow payments',
+                description: 'Your payment is held securely by us and only released once both parties confirm delivery.',
+              },
+              {
+                icon: <IconBadgeCheck />,
+                color: '#8b5cf6',
+                title: 'KYC-verified only',
+                description: 'Every transporter completes identity verification before they can list or accept a booking.',
+              },
+              {
+                icon: <IconChat />,
+                color: '#22c55e',
+                title: 'Real-time chat',
+                description: 'Negotiate, confirm, and co-ordinate directly inside the app with live in-app messaging.',
+              },
+              {
+                icon: <IconTruck />,
+                color: '#3b82f6',
+                title: 'Pan-India routes',
+                description: 'From metro cities to tier-2 towns — find or offer transport anywhere across India.',
+              },
+            ].map((item, idx) => (
+              <ScrollReveal key={item.title} delay={idx * 80} className="h-full">
+                <div className="flex flex-col flex-1 gap-4 p-5 sm:p-6 rounded-2xl border border-border bg-surface-raised transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
                   {/* Icon */}
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${feature.color}`}>
-                    {feature.icon}
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 flex flex-col gap-2">
-                    <h3 className="font-semibold text-text text-base">{feature.title}</h3>
-                    <p className="text-text-muted text-sm leading-relaxed flex-1">
-                      {feature.description}
-                    </p>
-                  </div>
-
-                  {/* Learn more link */}
-                  <Link
-                    to={feature.link}
-                    className="text-xs font-semibold text-primary hover:underline flex items-center gap-1 mt-auto"
+                  <div
+                    className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: `${item.color}18`, color: item.color }}
                   >
-                    Learn more <IconArrowRight />
-                  </Link>
-                </Card>
-              </div>
+                    {item.icon}
+                  </div>
+
+                  {/* Text */}
+                  <div className="flex flex-col gap-1.5">
+                    <p className="font-bold text-text text-sm">{item.title}</p>
+                    <p className="text-xs text-text-muted leading-relaxed">{item.description}</p>
+                  </div>
+
+                  {/* Bottom accent line */}
+                  <div
+                    className="mt-auto h-0.5 w-8 rounded-full"
+                    style={{ background: item.color, opacity: 0.5 }}
+                  />
+                </div>
+              </ScrollReveal>
             ))}
           </div>
         </div>
@@ -391,35 +597,69 @@ export default function HomePage() {
 
       {/* ── CTA ──────────────────────────────────────────────────────────── */}
       {!isAuthenticated && (
-        <section className="bg-primary py-16 px-4">
-          <div className="mx-auto max-w-3xl text-center text-white">
-            {/* Logo in CTA */}
+        <section
+          className="py-20 px-4 relative overflow-hidden"
+          style={{ background: 'linear-gradient(135deg, #8B1009 0%, #D31905 42%, #0a1f4a 100%)' }}
+        >
+          {/* Subtle grid overlay */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)',
+              backgroundSize: '32px 32px',
+            }}
+          />
+
+          <ScrollReveal className="relative mx-auto max-w-3xl text-center text-white">
+            {/* Logo */}
             <div className="flex justify-center mb-6 opacity-90">
-              <GoodsGoLogo size={48} />
+              <GoodsGoLogo size={52} />
             </div>
 
-            <h2 className="text-3xl font-bold mb-4">Ready to get moving?</h2>
-            <p className="text-red-100 text-lg mb-8 max-w-xl mx-auto leading-relaxed">
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4">Ready to get moving?</h2>
+            <p className="text-base sm:text-lg mb-10 max-w-xl mx-auto leading-relaxed" style={{ color: 'rgba(255,255,255,0.82)' }}>
               Join GoodsGo today — create a free account and start posting or browsing transport
               opportunities across India.
             </p>
 
             <div className="flex flex-wrap gap-4 justify-center">
               <Link to={ROUTES.REGISTER}>
-                <Button variant="secondary" size="lg">
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-2 font-bold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+                  style={{
+                    padding: '12px 28px',
+                    fontSize: '1rem',
+                    background: '#ffffff',
+                    color: '#D31905',
+                    border: 'none',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#f8f8f8'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = '#ffffff'; }}
+                >
                   Create a free account
-                </Button>
+                </button>
               </Link>
               <Link to={ROUTES.MARKETPLACE}>
                 <button
                   type="button"
-                  className="px-6 py-3 text-base font-medium text-white border border-white/70 rounded-lg hover:bg-white/10 transition-colors"
+                  className="inline-flex items-center gap-2 font-semibold rounded-xl transition-all duration-200"
+                  style={{
+                    padding: '12px 28px',
+                    fontSize: '1rem',
+                    color: '#ffffff',
+                    background: 'rgba(255,255,255,0.13)',
+                    border: '1.5px solid rgba(255,255,255,0.45)',
+                    backdropFilter: 'blur(8px)',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.22)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.13)'; }}
                 >
-                  Browse first
+                  Browse first <IconArrowRight />
                 </button>
               </Link>
             </div>
-          </div>
+          </ScrollReveal>
         </section>
       )}
 
