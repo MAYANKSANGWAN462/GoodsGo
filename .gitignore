@@ -11,10 +11,9 @@ node_modules/
 Thumbs.db
 
 # ──────────────────────────────────────
-# Internal engineering docs & AI tooling (kept local, not published)
+# AI tooling (kept local, not published)
 # ──────────────────────────────────────
 CLAUDE.md
-docs/
 .claude/
 
 # ──────────────────────────────────────
