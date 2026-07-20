@@ -230,7 +230,8 @@ export default function HomePage() {
       {/* ── Hero ──────────────────────────────────────────────────────────── */}
       <section style={{ position: 'relative', height: 'min(100vh, 720px)', minHeight: '520px' }}>
         <HeroBackground />
-        <div
+
+<div
           style={{
             position: 'absolute',
             inset: 0,
@@ -289,11 +290,11 @@ export default function HomePage() {
               marginTop: '16px',
               fontFamily: "'Manrope', sans-serif",
               fontSize: 'clamp(15px, 1.4vw, 20px)',
-              fontWeight: 500,
-              color: 'rgba(255,255,255,0.90)',
+              fontWeight: 600,
+              color: '#0b1929',
               maxWidth: '38ch',
               lineHeight: 1.55,
-              textShadow: '0 1px 12px rgba(6,22,44,0.3)',
+              textShadow: '0 1px 5px rgba(255,255,255,0.45)',
               animationDelay: '120ms',
             }}
           >
