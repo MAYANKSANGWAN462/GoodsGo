@@ -145,13 +145,13 @@ The repository contains two applications:
                  Vercel  (static SPA + edge CDN + SPA rewrites)
                         │  VITE_API_URL → backend origin
                         ▼
-   ┌──────────────────────────────────────────────────────────────────────┐
+   ┌─────────────────────────────────────────────────────────────────────────┐
    │  Render / Railway — one Node process (server.js)                        │
    │   Express app  ──  helmet → cors → compression → sanitize → rate-limit  │
    │                    → /api/v1/* routers → error handler                  │
    │   Socket.io (shares the HTTP port) · node-cron (hourly maintenance)     │
    │   Layering: routes → middleware → controller → service → database       │
-   └───────┬───────────────┬───────────────┬───────────────┬────────────────┘
+   └───────┬───────────────┬───────────────┬───────────────┬─────────────────┘
            ▼               ▼               ▼               ▼
      Neon Postgres     Cloudinary       Razorpay      Email (Gmail API/
      (pooled, SSL)     (images/CDN)     (escrow)       Brevo/SMTP over HTTPS)
