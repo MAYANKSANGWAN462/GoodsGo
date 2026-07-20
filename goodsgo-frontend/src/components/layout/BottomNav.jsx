@@ -102,7 +102,9 @@ export default function BottomNav() {
       >
         <div className="flex h-16 items-stretch">
           {/* Left two tabs */}
-          {AUTH_TABS.slice(0, 2).map(({ label, to, Icon }) => {
+          {AUTH_TABS.slice(0, 2).map((tab) => {
+            const { label, to } = tab;
+            const NavIcon = tab.Icon;
             const active = pathname === to || pathname.startsWith(to + '/');
             return (
               <Link
@@ -117,7 +119,7 @@ export default function BottomNav() {
                 {active && (
                   <span className="absolute top-0 left-1/2 -translate-x-1/2 h-0.5 w-8 bg-primary rounded-b-full" />
                 )}
-                <Icon active={active} />
+                <NavIcon active={active} />
                 <span>{label}</span>
               </Link>
             );
@@ -135,7 +137,9 @@ export default function BottomNav() {
           </div>
 
           {/* Right two tabs */}
-          {AUTH_TABS.slice(2).map(({ label, to, Icon }) => {
+          {AUTH_TABS.slice(2).map((tab) => {
+            const { label, to } = tab;
+            const NavIcon = tab.Icon;
             const active = pathname === to || pathname.startsWith(to + '/');
             return (
               <Link
@@ -150,7 +154,7 @@ export default function BottomNav() {
                 {active && (
                   <span className="absolute top-0 left-1/2 -translate-x-1/2 h-0.5 w-8 bg-primary rounded-b-full" />
                 )}
-                <Icon active={active} />
+                <NavIcon active={active} />
                 <span>{label}</span>
               </Link>
             );
@@ -167,7 +171,9 @@ export default function BottomNav() {
       style={{ height: 'calc(64px + env(safe-area-inset-bottom, 0px))' }}
     >
       <div className="flex h-16 items-stretch">
-        {GUEST_TABS.map(({ label, to, Icon }) => {
+        {GUEST_TABS.map((tab) => {
+          const { label, to } = tab;
+          const NavIcon = tab.Icon;
           const active = pathname === to;
           return (
             <Link
@@ -180,7 +186,7 @@ export default function BottomNav() {
               {active && (
                 <span className="absolute top-0 left-1/2 -translate-x-1/2 h-0.5 w-8 bg-primary rounded-b-full" />
               )}
-              <Icon active={active} />
+              <NavIcon active={active} />
               <span>{label}</span>
             </Link>
           );

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import Avatar from '../common/Avatar';
 import Spinner from '../common/Spinner';
@@ -44,7 +44,7 @@ export default function ChatWindow({ conversationId, onBack }) {
   const sendMessageMutation = useSendMessage(conversationId);
   const sendImageMutation = useSendImageMessage(conversationId);
 
-  const messages = msgData?.data ?? [];
+  const messages = useMemo(() => msgData?.data ?? [], [msgData]);
 
   // Reset older-message state whenever the active conversation changes.
   useEffect(() => {

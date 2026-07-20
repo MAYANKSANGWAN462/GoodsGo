@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import Avatar from '../common/Avatar';
 import Spinner from '../common/Spinner';
-import { timeAgo } from '../../utils/formatters';
 
 function CameraIcon() {
   return (

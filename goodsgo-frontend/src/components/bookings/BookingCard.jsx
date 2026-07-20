@@ -39,8 +39,6 @@ export default function BookingCard({ booking, currentUserId }) {
 
   const originCity = booking.post?.originCity;
   const destinationCity = booking.post?.destinationCity;
-  const routeLabel = [originCity, destinationCity].filter(Boolean).join(' → ') || '—';
-
   return (
     <Card
       onClick={() => navigate(buildRoute(ROUTES.BOOKING_DETAIL, { id: booking.id }))}
