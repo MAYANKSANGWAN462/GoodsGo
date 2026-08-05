@@ -21,6 +21,16 @@ export async function login(payload) {
 }
 
 /**
+ * Sign in / register via Google Identity Services.
+ * @param {string} credential - Google ID token from GoogleLogin onSuccess callback
+ * @returns {Promise<{ data: { accessToken: string, user: object } }>}
+ */
+export async function googleLogin(credential) {
+  const res = await api.post('/auth/google', { credential });
+  return unwrapResponse(res);
+}
+
+/**
  * Log out the current user. Clears the httpOnly refresh cookie on the backend.
  * @returns {Promise<void>}
  */

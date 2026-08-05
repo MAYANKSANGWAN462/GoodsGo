@@ -1,5 +1,7 @@
 'use strict';
 
+const { OAuth2Client } = require('google-auth-library');
+
 const { query, getClient }          = require('../../config/database');
 const { hashPassword, comparePassword } = require('../../utils/hashPassword');
 const { generateAccessToken, generateRefreshToken, generateAdminToken, verifyRefreshToken, hashToken, getRefreshTokenExpiry } = require('../../utils/generateTokens');
@@ -780,12 +782,148 @@ async function adminLogin({ email, password }) {
   };
 }
 
+// ─── googleSignIn ─────────────────────────────────────────────────────────────
+
+/**
+ * googleSignIn — Verifies a Google ID token and returns GoodsGo session tokens.
+ *
+ * Flow:
+ *   1. Verifies the ID token against Google's public keys (audience = GMAIL_CLIENT_ID).
+ *   2. Looks up user by google_id, falling back to email match for pre-existing accounts.
+ *   3. Creates a new user if none found (email already verified by Google).
+ *   4. Links google_id to an existing email/password account if not yet linked.
+ *   5. Issues access token + sets httpOnly refresh cookie, same as password login.
+ *
+ * @param {string} credential - Google ID token from the frontend
+ * @param {import('express').Response} res - Used to set the refresh cookie
+ * @returns {Promise<{ accessToken: string, user: Object }>}
+ */
+async function googleSignIn(credential, res) {
+  // 1. Verify ID token with Google
+  const googleClient = new OAuth2Client();
+  let payload;
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken:  credential,
+      audience: process.env.GMAIL_CLIENT_ID,
+    });
+    payload = ticket.getPayload();
+  } catch {
+    throw ApiError.unauthorized('Invalid Google credential. Please try again.');
+  }
+
+  const { sub: googleId, email, name: googleName, picture, email_verified } = payload;
+
+  if (!email_verified) {
+    throw ApiError.badRequest('Your Google account email is not verified.');
+  }
+
+  // 2. Find existing user — google_id match takes priority over email match
+  const result = await query(
+    `SELECT id, email, phone, full_name, profile_image_url,
+            is_email_verified, is_active, suspended_at, deleted_at,
+            rating, total_reviews, google_id
+     FROM users
+     WHERE google_id = $1 OR (email = $2 AND deleted_at IS NULL)
+     ORDER BY (google_id = $1) DESC
+     LIMIT 1`,
+    [googleId, email]
+  );
+
+  let user = result.rows[0] || null;
+
+  if (user) {
+    // 3a. Account state checks
+    if (user.deleted_at) {
+      throw ApiError.unauthorized(
+        'This account has been deactivated. Please contact support if you believe this is an error.'
+      );
+    }
+    if (!user.is_active || user.suspended_at) {
+      throw new ApiError(
+        403,
+        'Your account has been suspended. Please contact GoodsGo support.',
+        null,
+        'ACCOUNT_SUSPENDED'
+      );
+    }
+
+    // 3b. Link Google ID to a pre-existing email/password account
+    if (!user.google_id) {
+      await query(
+        `UPDATE users
+         SET google_id = $1, is_email_verified = TRUE, updated_at = NOW()
+         WHERE id = $2`,
+        [googleId, user.id]
+      );
+      user.is_email_verified = true;
+    }
+  } else {
+    // 4. Create new user — Google already verified the email
+    const sanitized = ((googleName || '').trim()).slice(0, 100);
+    const full_name  = sanitized.length >= 2 ? sanitized : email.split('@')[0].slice(0, 100);
+
+    const insert = await query(
+      `INSERT INTO users
+         (email, full_name, profile_image_url, is_email_verified, google_id, auth_provider)
+       VALUES ($1, $2, $3, TRUE, $4, 'google')
+       RETURNING id, email, phone, full_name, profile_image_url,
+                 is_email_verified, is_active, suspended_at, deleted_at,
+                 rating, total_reviews, google_id`,
+      [email, full_name, picture || null, googleId]
+    );
+    user = insert.rows[0];
+
+    // Send welcome email (async — does not block response)
+    setImmediate(async () => {
+      try {
+        await sendWelcomeEmail(user.email, user.full_name);
+      } catch (err) {
+        console.error('[Auth] googleSignIn: Failed to send welcome email:', err.message);
+      }
+    });
+  }
+
+  // 5. Issue GoodsGo tokens — same flow as password login
+  const accessToken  = generateAccessToken(user);
+  const refreshToken = generateRefreshToken(user);
+  const tokenHash    = hashToken(refreshToken);
+  const expiresAt    = getRefreshTokenExpiry();
+
+  await query(
+    `INSERT INTO refresh_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)`,
+    [user.id, tokenHash, expiresAt]
+  );
+
+  setRefreshTokenCookie(res, refreshToken);
+
+  setImmediate(() => {
+    query('UPDATE users SET last_login_at = NOW() WHERE id = $1', [user.id])
+      .catch((err) => console.error('[Auth] googleSignIn: last_login_at update failed:', err.message));
+  });
+
+  return {
+    accessToken,
+    user: {
+      id:              user.id,
+      email:           user.email,
+      fullName:        user.full_name,
+      phone:           user.phone            || null,
+      profileImageUrl: user.profile_image_url,
+      isEmailVerified: true,
+      rating:          parseFloat(user.rating) || 0,
+      totalReviews:    user.total_reviews      || 0,
+    },
+  };
+}
+
 // ─── Exports ──────────────────────────────────────────────────────────────────
 
 module.exports = {
   register,
   login,
   adminLogin,
+  googleSignIn,
   logout,
   refreshAccessToken,
   verifyEmail,

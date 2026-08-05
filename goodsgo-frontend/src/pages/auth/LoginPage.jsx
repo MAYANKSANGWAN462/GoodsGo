@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import AuthSplitLayout from '../../components/layout/AuthSplitLayout';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
+import GoogleSignInButton from '../../components/auth/GoogleSignInButton';
 import { ROUTES } from '../../constants/routes';
 import { login } from '../../services/auth.service';
 import useAuthStore from '../../stores/useAuthStore';
@@ -89,6 +90,18 @@ export default function LoginPage() {
           Log in
         </Button>
       </form>
+
+      {/* Divider */}
+      <div className="relative my-5">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-border" />
+        </div>
+        <div className="relative flex justify-center">
+          <span className="bg-surface px-3 text-xs text-text-muted">or continue with</span>
+        </div>
+      </div>
+
+      <GoogleSignInButton mode="login" />
 
       <p className="mt-6 text-center text-sm text-text-muted">
         Don&apos;t have an account?{' '}

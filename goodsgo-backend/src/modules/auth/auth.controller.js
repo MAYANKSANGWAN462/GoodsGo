@@ -143,6 +143,22 @@ const resendVerification = asyncHandler(async (req, res) => {
   );
 });
 
+// ─── googleSignIn ─────────────────────────────────────────────────────────────
+
+/**
+ * POST /api/v1/auth/google
+ * Body (validated by googleSignInSchema): { credential }
+ * credential is the Google ID token returned by Google Identity Services.
+ * Sets httpOnly cookie: refresh_token (same as password login).
+ */
+const googleSignIn = asyncHandler(async (req, res) => {
+  const { accessToken, user } = await authService.googleSignIn(req.body.credential, res);
+
+  res.status(200).json(
+    new ApiResponse(200, 'Google sign-in successful.', { accessToken, user })
+  );
+});
+
 // ─── adminLogin ───────────────────────────────────────────────────────────────
 
 /**
@@ -165,6 +181,7 @@ module.exports = {
   register,
   login,
   adminLogin,
+  googleSignIn,
   logout,
   refreshToken,
   forgotPassword,

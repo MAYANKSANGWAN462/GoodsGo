@@ -149,10 +149,23 @@ const resendVerificationSchema = Joi.object({
 
 const adminLoginSchema = loginSchema;
 
+// ─── Google Sign-In Schema ────────────────────────────────────────────────────
+
+const googleSignInSchema = Joi.object({
+  credential: Joi.string()
+    .min(1)
+    .required()
+    .messages({
+      'any.required': 'Google credential is required',
+      'string.empty': 'Google credential is required',
+    }),
+});
+
 module.exports = {
   registerSchema,
   loginSchema,
   adminLoginSchema,
+  googleSignInSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
   verifyEmailSchema,

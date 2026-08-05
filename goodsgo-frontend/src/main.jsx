@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import * as Sentry from '@sentry/react';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import './index.css';
 // Initialise the theme (applies .dark class) before first paint to prevent FOUC
 import './stores/useThemeStore.js';
@@ -20,6 +21,8 @@ if (import.meta.env.VITE_SENTRY_DSN) {
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <App />
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+      <App />
+    </GoogleOAuthProvider>
   </StrictMode>
 );

@@ -13,6 +13,7 @@ const {
   registerSchema,
   loginSchema,
   adminLoginSchema,
+  googleSignInSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
   verifyEmailSchema,
@@ -48,6 +49,19 @@ router.post(
   authLimiter,
   validate(loginSchema),
   authController.login
+);
+
+/**
+ * POST /api/v1/auth/google
+ * Rate limit: shared authLimiter (10 per 15 min per IP)
+ * Body: { credential } — Google ID token from Google Identity Services
+ * Creates or logs in the user; sets httpOnly refresh cookie.
+ */
+router.post(
+  '/google',
+  authLimiter,
+  validate(googleSignInSchema),
+  authController.googleSignIn
 );
 
 /**

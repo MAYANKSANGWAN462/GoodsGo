@@ -34,3 +34,11 @@ ds-bundle/
 # Postman collection (kept local — may contain auth tokens or internal request details)
 GoodsGo.postman_collection.json
 *.postman_collection.json
+
+# ──────────────────────────────────────
+# Documentation exports (kept local)
+# ──────────────────────────────────────
+GoodsGo-Complete-Documentation.html
+GoodsGo-Complete-Documentation.pdf
+*-Documentation.html
+*-Documentation.pdf
