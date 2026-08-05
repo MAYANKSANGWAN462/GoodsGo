@@ -29,13 +29,8 @@ export default function GoogleSignInButton({ mode = 'login' }) {
   useEffect(() => {
     const el = wrapperRef.current;
     if (!el) return;
-    const clamp = (w) => Math.min(400, Math.max(200, Math.floor(w)));
-    setBtnWidth(clamp(el.getBoundingClientRect().width));
-    const ro = new ResizeObserver(([entry]) =>
-      setBtnWidth(clamp(entry.contentRect.width))
-    );
-    ro.observe(el);
-    return () => ro.disconnect();
+    const w = Math.min(400, Math.max(200, Math.floor(el.getBoundingClientRect().width)));
+    setBtnWidth(w);
   }, []);
 
   const { mutate, isPending } = useMutation({
