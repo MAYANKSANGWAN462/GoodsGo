@@ -1,7 +1,7 @@
 import { createContext, useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { useQueryClient } from '@tanstack/react-query';
-import useAuthStore from '../stores/useAuthStore';
+import useAuthStore, { SESSION_HINT_KEY } from '../stores/useAuthStore';
 import useSocketStore from '../stores/useSocketStore';
 import { refreshToken } from '../services/auth.service';
 import { logout as logoutService } from '../services/auth.service';
@@ -30,6 +30,13 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (didSilentRefresh.current) return;
     didSilentRefresh.current = true;
+
+    // Skip the refresh call entirely if there's no prior session hint —
+    // avoids a guaranteed 401 in the console for every unauthenticated cold load.
+    if (!localStorage.getItem(SESSION_HINT_KEY)) {
+      setIsInitializing(false);
+      return;
+    }
 
     refreshToken()
       .then(({ data }) => {

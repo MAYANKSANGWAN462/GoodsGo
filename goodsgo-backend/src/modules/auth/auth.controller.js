@@ -152,10 +152,10 @@ const resendVerification = asyncHandler(async (req, res) => {
  * Sets httpOnly cookie: refresh_token (same as password login).
  */
 const googleSignIn = asyncHandler(async (req, res) => {
-  const { accessToken, user } = await authService.googleSignIn(req.body.credential, res);
+  const { accessToken, user, isNewUser, isLinked } = await authService.googleSignIn(req.body.credential, res);
 
   res.status(200).json(
-    new ApiResponse(200, 'Google sign-in successful.', { accessToken, user })
+    new ApiResponse(200, 'Google sign-in successful.', { accessToken, user, isNewUser, isLinked })
   );
 });
 

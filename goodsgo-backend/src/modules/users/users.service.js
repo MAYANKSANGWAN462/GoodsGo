@@ -200,6 +200,15 @@ async function changePassword(userId, currentPassword, newPassword) {
 
   const { password_hash } = result.rows[0];
 
+  if (!password_hash) {
+    throw new ApiError(
+      400,
+      'Your account uses Google Sign-In and has no password. Use "Forgot Password" from the login page to set one.',
+      null,
+      'NO_PASSWORD'
+    );
+  }
+
   // 2. Verify current password
   const isCurrentValid = await comparePassword(currentPassword, password_hash);
   if (!isCurrentValid) {
@@ -284,7 +293,7 @@ async function uploadAvatar(userId, file) {
     `UPDATE users
      SET profile_image_url = $1, profile_image_public_id = $2
      WHERE id = $3`,
-    [uploaded.secureUrl, uploaded.publicId, userId]
+    [uploaded.url, uploaded.publicId, userId]
   );
 
   // 4. Delete old image from Cloudinary — async, non-blocking
@@ -297,7 +306,7 @@ async function uploadAvatar(userId, file) {
     });
   }
 
-  return { profileImageUrl: uploaded.secureUrl };
+  return { profileImageUrl: uploaded.url };
 }
 
 // ─── removeAvatar ─────────────────────────────────────────────────────────────
@@ -309,7 +318,7 @@ async function uploadAvatar(userId, file) {
  */
 async function removeAvatar(userId) {
   const result = await query(
-    'SELECT profile_image_public_id FROM users WHERE id = $1 AND deleted_at IS NULL',
+    'SELECT profile_image_url, profile_image_public_id FROM users WHERE id = $1 AND deleted_at IS NULL',
     [userId]
   );
 
@@ -317,9 +326,9 @@ async function removeAvatar(userId) {
     throw ApiError.notFound('User');
   }
 
-  const { profile_image_public_id } = result.rows[0];
+  const { profile_image_url, profile_image_public_id } = result.rows[0];
 
-  if (!profile_image_public_id) {
+  if (!profile_image_url && !profile_image_public_id) {
     throw ApiError.badRequest('No profile image to remove.');
   }
 
@@ -329,12 +338,14 @@ async function removeAvatar(userId) {
     [userId]
   );
 
-  // Delete from Cloudinary asynchronously
-  setImmediate(() => {
-    deleteImage(profile_image_public_id).catch((err) => {
-      console.error('[Users] removeAvatar: Cloudinary delete failed:', err.message);
+  // Only delete from Cloudinary if an asset exists there (skip for Google/external URLs)
+  if (profile_image_public_id) {
+    setImmediate(() => {
+      deleteImage(profile_image_public_id).catch((err) => {
+        console.error('[Users] removeAvatar: Cloudinary delete failed:', err.message);
+      });
     });
-  });
+  }
 }
 
 // ─── getPublicProfile ─────────────────────────────────────────────────────────

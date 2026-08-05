@@ -417,7 +417,7 @@ async function createPost(userId, data, files = []) {
         await client.query(
           `INSERT INTO post_images (post_id, image_url, cloudinary_public_id, display_order)
            VALUES ($1, $2, $3, $4)`,
-          [postId, uploaded.secureUrl, uploaded.publicId, i]
+          [postId, uploaded.url, uploaded.publicId, i]
         );
       }
     }
@@ -514,7 +514,7 @@ async function updatePost(postId, userId, data, newFiles = []) {
         await query(
           `INSERT INTO post_images (post_id, image_url, cloudinary_public_id, display_order)
            VALUES ($1, $2, $3, $4)`,
-          [postId, uploaded.secureUrl, uploaded.publicId, nextOrder + i]
+          [postId, uploaded.url, uploaded.publicId, nextOrder + i]
         );
       }
     }

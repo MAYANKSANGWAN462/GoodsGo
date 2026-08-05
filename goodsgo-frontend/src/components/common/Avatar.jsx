@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { generateInitials } from '../../utils/generateInitials';
 import { cloudinaryUrl } from '../../utils/cloudinaryUrl';
@@ -31,6 +31,7 @@ const RING_CLASSES = {
  */
 export default function Avatar({ src, name, size = 'md', ring = 'none', className = '' }) {
   const [imgError, setImgError] = useState(false);
+  useEffect(() => { setImgError(false); }, [src]);
   const sizeClass = SIZE_CLASSES[size] ?? SIZE_CLASSES.md;
   const ringClass = RING_CLASSES[ring] ?? RING_CLASSES.none;
   const initials = generateInitials(name);

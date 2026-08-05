@@ -11,6 +11,7 @@ import {
   deactivateAccount,
 } from '../services/users.service';
 import useAuth from './useAuth';
+import useAuthStore from '../stores/useAuthStore';
 import { ROUTES } from '../constants/routes';
 
 /**
@@ -83,37 +84,49 @@ export function useChangePassword() {
 
 /**
  * Mutation hook to upload a new avatar image.
- * On success: invalidates ['me'].
+ * On success: invalidates ['me'] and updates auth store so Navbar avatar refreshes immediately.
  * @returns {import('@tanstack/react-query').UseMutationResult}
  */
 export function useUploadAvatar() {
   const queryClient = useQueryClient();
+  const setAuth     = useAuthStore((s) => s.setAuth);
+  const user        = useAuthStore((s) => s.user);
+  const accessToken = useAuthStore((s) => s.accessToken);
 
   return useMutation({
     mutationFn: (formData) => uploadAvatar(formData),
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['me'] });
-      toast.success('Avatar updated.');
+      if (data?.profileImageUrl && user) {
+        setAuth({ ...user, profileImageUrl: data.profileImageUrl }, accessToken);
+      }
+      toast.success('Profile photo updated.');
     },
-    onError: (err) => toast.error(err.message || 'Failed to upload avatar.'),
+    onError: (err) => toast.error(err.message || 'Failed to upload photo.'),
   });
 }
 
 /**
  * Mutation hook to remove the current avatar image.
- * On success: invalidates ['me'].
+ * On success: invalidates ['me'] and clears profileImageUrl in auth store.
  * @returns {import('@tanstack/react-query').UseMutationResult}
  */
 export function useRemoveAvatar() {
   const queryClient = useQueryClient();
+  const setAuth     = useAuthStore((s) => s.setAuth);
+  const user        = useAuthStore((s) => s.user);
+  const accessToken = useAuthStore((s) => s.accessToken);
 
   return useMutation({
     mutationFn: removeAvatar,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['me'] });
-      toast.success('Avatar removed.');
+      if (user) {
+        setAuth({ ...user, profileImageUrl: null }, accessToken);
+      }
+      toast.success('Photo removed.');
     },
-    onError: (err) => toast.error(err.message || 'Failed to remove avatar.'),
+    onError: (err) => toast.error(err.message || 'Failed to remove photo.'),
   });
 }
 

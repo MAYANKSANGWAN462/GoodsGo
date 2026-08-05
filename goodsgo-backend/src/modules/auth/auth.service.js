@@ -831,6 +831,8 @@ async function googleSignIn(credential, res) {
   );
 
   let user = result.rows[0] || null;
+  let isNewUser = false;
+  let isLinked  = false;
 
   if (user) {
     // 3a. Account state checks
@@ -850,6 +852,7 @@ async function googleSignIn(credential, res) {
 
     // 3b. Link Google ID to a pre-existing email/password account
     if (!user.google_id) {
+      isLinked = true;
       await query(
         `UPDATE users
          SET google_id = $1, is_email_verified = TRUE, updated_at = NOW()
@@ -860,6 +863,7 @@ async function googleSignIn(credential, res) {
     }
   } else {
     // 4. Create new user — Google already verified the email
+    isNewUser = true;
     const sanitized = ((googleName || '').trim()).slice(0, 100);
     const full_name  = sanitized.length >= 2 ? sanitized : email.split('@')[0].slice(0, 100);
 
@@ -904,6 +908,8 @@ async function googleSignIn(credential, res) {
 
   return {
     accessToken,
+    isNewUser,
+    isLinked,
     user: {
       id:              user.id,
       email:           user.email,

@@ -275,60 +275,96 @@ function PasswordForm() {
 // ── Avatar section ───────────────────────────────────────────────────────────
 
 function AvatarSection({ user }) {
-  const fileInputRef = useRef(null);
+  const fileInputRef   = useRef(null);
   const uploadMutation = useUploadAvatar();
   const removeMutation = useRemoveAvatar();
+  const [preview, setPreview] = useState(null);
 
   function handleFileChange(e) {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    const objectUrl = URL.createObjectURL(file);
+    setPreview(objectUrl);
+
     const formData = new FormData();
     formData.append('avatar', file);
-    uploadMutation.mutate(formData);
+    uploadMutation.mutate(formData, {
+      onSettled: () => {
+        URL.revokeObjectURL(objectUrl);
+        setPreview(null);
+      },
+    });
     e.target.value = '';
   }
 
-  const isWorking = uploadMutation.isPending || removeMutation.isPending;
+  function handleRemove() {
+    setPreview(null);
+    removeMutation.mutate();
+  }
+
+  const displaySrc = preview || user?.profileImageUrl || null;
+  const isWorking  = uploadMutation.isPending || removeMutation.isPending;
+  const hasImage   = Boolean(preview || user?.profileImageUrl);
 
   return (
-    <div className="flex items-center gap-5 flex-wrap">
-      <div className="relative flex-shrink-0">
-        <Avatar src={user?.profileImageUrl} name={user?.fullName ?? ''} size="xl" />
-        {isWorking && (
-          <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center">
+    <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
+      {/* Clickable avatar — camera overlay appears on hover */}
+      <button
+        type="button"
+        onClick={() => !isWorking && fileInputRef.current?.click()}
+        disabled={isWorking}
+        className="relative group flex-shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed"
+        aria-label="Change profile photo"
+      >
+        <Avatar src={displaySrc} name={user?.fullName ?? ''} size="2xl" />
+        {isWorking ? (
+          <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
             <Spinner size="sm" />
           </div>
+        ) : (
+          <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-150 text-white">
+            <IconCamera />
+          </div>
         )}
-      </div>
-      <div className="flex flex-col gap-2">
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          className="hidden"
-          aria-label="Upload avatar"
-          onChange={handleFileChange}
-        />
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => fileInputRef.current?.click()}
-          isLoading={uploadMutation.isPending}
-          disabled={isWorking}
-        >
-          Upload new photo
-        </Button>
-        {user?.profileImageUrl && (
+      </button>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="hidden"
+        aria-label="Upload profile photo"
+        onChange={handleFileChange}
+      />
+
+      <div className="flex flex-col gap-2 items-center sm:items-start">
+        <div className="text-center sm:text-left">
+          <p className="text-sm font-medium text-text">Profile photo</p>
+          <p className="text-xs text-text-muted mt-0.5">Click the photo or use the button below to upload</p>
+        </div>
+        <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
           <Button
-            variant="ghost"
+            variant="secondary"
             size="sm"
-            onClick={() => removeMutation.mutate()}
-            isLoading={removeMutation.isPending}
+            onClick={() => fileInputRef.current?.click()}
+            isLoading={uploadMutation.isPending}
             disabled={isWorking}
           >
-            Remove photo
+            Upload new photo
           </Button>
-        )}
+          {hasImage && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRemove}
+              isLoading={removeMutation.isPending}
+              disabled={isWorking}
+            >
+              Remove
+            </Button>
+          )}
+        </div>
         <p className="text-xs text-text-muted">JPEG, PNG or WebP · Max 5 MB</p>
       </div>
     </div>
