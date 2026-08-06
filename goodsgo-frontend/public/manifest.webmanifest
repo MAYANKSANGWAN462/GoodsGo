@@ -1,0 +1,27 @@
+{
+  "name": "GoodsGo — India's Logistics Marketplace",
+  "short_name": "GoodsGo",
+  "description": "Connect with transporters, post transport needs, and move goods securely with escrow-backed payments.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0f1117",
+  "theme_color": "#D31905",
+  "lang": "en-IN",
+  "categories": ["business", "logistics", "transportation"],
+  "icons": [
+    {
+      "src": "/logo/goods-go-static.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/GOODS_GO.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

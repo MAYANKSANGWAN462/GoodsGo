@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 
@@ -13,6 +13,8 @@ import MainLayout from './components/layout/MainLayout';
 import AdminLayout from './components/layout/AdminLayout';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import PageLoader from './components/common/PageLoader';
+import InstallBanner from './components/common/InstallBanner';
+import { usePWAInstall } from './hooks/usePWAInstall';
 
 import { ROUTES } from './constants/routes';
 import { getConfigOptions } from './services/config.service';
@@ -159,6 +161,11 @@ function AppRoutes() {
     return () => clearTimeout(id);
   }, []);
 
+  const location = useLocation();
+  const { showBanner, isIOS, triggerInstall, dismiss } = usePWAInstall();
+  // Never show the install banner inside the admin panel.
+  const isAdminRoute = location.pathname.startsWith('/admin');
+
   return (
     <ErrorBoundary>
     <Suspense fallback={<PageLoader variant="page" />}>
@@ -227,6 +234,10 @@ function AppRoutes() {
       <Route path="*" element={<Navigate to={ROUTES.NOT_FOUND} replace />} />
     </Routes>
     </Suspense>
+
+    {showBanner && !isAdminRoute && (
+      <InstallBanner isIOS={isIOS} onInstall={triggerInstall} onDismiss={dismiss} />
+    )}
     </ErrorBoundary>
   );
 }

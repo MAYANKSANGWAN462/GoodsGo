@@ -19,6 +19,14 @@ if (import.meta.env.VITE_SENTRY_DSN) {
   });
 }
 
+// Register service worker (required for PWA installability in Chrome/Android).
+// Runs in production; silently skipped in dev where SW would interfere with HMR.
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js');
+  });
+}
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
