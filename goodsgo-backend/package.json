@@ -18,7 +18,7 @@
     "seed:demo": "node src/db/seeds/seed_demo_data.js"
   },
   "dependencies": {
-    "@sentry/node": "^8.55.2",
+    "@sentry/node": "^10.69.0",
     "axios": "^1.7.9",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^2.5.1",
@@ -39,7 +39,10 @@
     "pg": "^8.11.5",
     "razorpay": "^2.9.6",
     "socket.io": "^4.7.5",
-    "uuid": "^9.0.1"
+    "uuid": "^11.1.1"
+  },
+  "overrides": {
+    "uuid": "^11.1.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.4"

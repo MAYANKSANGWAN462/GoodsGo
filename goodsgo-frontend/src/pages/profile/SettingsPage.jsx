@@ -5,6 +5,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { useMe, useUpdateProfile, useChangePassword, useUploadAvatar, useRemoveAvatar, useDeactivateAccount } from '../../hooks/useUsers';
 import Avatar from '../../components/common/Avatar';
+import AvatarCropModal from '../../components/common/AvatarCropModal';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import Textarea from '../../components/common/Textarea';
@@ -275,99 +276,133 @@ function PasswordForm() {
 // ── Avatar section ───────────────────────────────────────────────────────────
 
 function AvatarSection({ user }) {
-  const fileInputRef   = useRef(null);
-  const uploadMutation = useUploadAvatar();
-  const removeMutation = useRemoveAvatar();
-  const [preview, setPreview] = useState(null);
+  const fileInputRef    = useRef(null);
+  const uploadMutation  = useUploadAvatar();
+  const removeMutation  = useRemoveAvatar();
+  const [rawImageSrc, setRawImageSrc]     = useState(null);
+  const [showCropModal, setShowCropModal] = useState(false);
 
   function handleFileChange(e) {
     const file = e.target.files?.[0];
     if (!file) return;
-
     const objectUrl = URL.createObjectURL(file);
-    setPreview(objectUrl);
-
-    const formData = new FormData();
-    formData.append('avatar', file);
-    uploadMutation.mutate(formData, {
-      onSettled: () => {
-        URL.revokeObjectURL(objectUrl);
-        setPreview(null);
-      },
-    });
+    setRawImageSrc(objectUrl);
+    setShowCropModal(true);
     e.target.value = '';
   }
 
+  function handleCropConfirm(blob) {
+    setShowCropModal(false);
+    const formData = new FormData();
+    formData.append('avatar', blob, 'avatar.jpg');
+    uploadMutation.mutate(formData, {
+      onSettled: () => {
+        if (rawImageSrc?.startsWith('blob:')) URL.revokeObjectURL(rawImageSrc);
+        setRawImageSrc(null);
+      },
+    });
+  }
+
+  function handleCropClose() {
+    setShowCropModal(false);
+    if (rawImageSrc?.startsWith('blob:')) URL.revokeObjectURL(rawImageSrc);
+    setRawImageSrc(null);
+  }
+
+  function handleAdjust() {
+    setRawImageSrc(user?.profileImageUrl);
+    setShowCropModal(true);
+  }
+
   function handleRemove() {
-    setPreview(null);
+    setRawImageSrc(null);
     removeMutation.mutate();
   }
 
-  const displaySrc = preview || user?.profileImageUrl || null;
-  const isWorking  = uploadMutation.isPending || removeMutation.isPending;
-  const hasImage   = Boolean(preview || user?.profileImageUrl);
+  const isWorking = uploadMutation.isPending || removeMutation.isPending;
+  const hasImage  = Boolean(user?.profileImageUrl);
 
   return (
-    <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
-      {/* Clickable avatar — camera overlay appears on hover */}
-      <button
-        type="button"
-        onClick={() => !isWorking && fileInputRef.current?.click()}
-        disabled={isWorking}
-        className="relative group flex-shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed"
-        aria-label="Change profile photo"
-      >
-        <Avatar src={displaySrc} name={user?.fullName ?? ''} size="2xl" />
-        {isWorking ? (
-          <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
-            <Spinner size="sm" />
-          </div>
-        ) : (
-          <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-150 text-white">
-            <IconCamera />
-          </div>
-        )}
-      </button>
+    <>
+      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
+        {/* Clickable avatar — camera overlay appears on hover */}
+        <button
+          type="button"
+          onClick={() => !isWorking && fileInputRef.current?.click()}
+          disabled={isWorking}
+          className="relative group flex-shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed"
+          aria-label="Change profile photo"
+        >
+          <Avatar src={user?.profileImageUrl} name={user?.fullName ?? ''} size="2xl" />
+          {isWorking ? (
+            <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
+              <Spinner size="sm" />
+            </div>
+          ) : (
+            <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-150 text-white">
+              <IconCamera />
+            </div>
+          )}
+        </button>
 
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/jpeg,image/png,image/webp"
-        className="hidden"
-        aria-label="Upload profile photo"
-        onChange={handleFileChange}
-      />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="hidden"
+          aria-label="Upload profile photo"
+          onChange={handleFileChange}
+        />
 
-      <div className="flex flex-col gap-2 items-center sm:items-start">
-        <div className="text-center sm:text-left">
-          <p className="text-sm font-medium text-text">Profile photo</p>
-          <p className="text-xs text-text-muted mt-0.5">Click the photo or use the button below to upload</p>
-        </div>
-        <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => fileInputRef.current?.click()}
-            isLoading={uploadMutation.isPending}
-            disabled={isWorking}
-          >
-            Upload new photo
-          </Button>
-          {hasImage && (
+        <div className="flex flex-col gap-2 items-center sm:items-start">
+          <div className="text-center sm:text-left">
+            <p className="text-sm font-medium text-text">Profile photo</p>
+            <p className="text-xs text-text-muted mt-0.5">Click the photo or use the button below to upload</p>
+          </div>
+          <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
             <Button
-              variant="ghost"
+              variant="secondary"
               size="sm"
-              onClick={handleRemove}
-              isLoading={removeMutation.isPending}
+              onClick={() => fileInputRef.current?.click()}
+              isLoading={uploadMutation.isPending}
               disabled={isWorking}
             >
-              Remove
+              Upload new photo
             </Button>
-          )}
+            {hasImage && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleAdjust}
+                disabled={isWorking}
+              >
+                Adjust photo
+              </Button>
+            )}
+            {hasImage && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRemove}
+                isLoading={removeMutation.isPending}
+                disabled={isWorking}
+              >
+                Remove
+              </Button>
+            )}
+          </div>
+          <p className="text-xs text-text-muted">JPEG, PNG or WebP · Max 5 MB</p>
         </div>
-        <p className="text-xs text-text-muted">JPEG, PNG or WebP · Max 5 MB</p>
       </div>
-    </div>
+
+      {showCropModal && rawImageSrc && (
+        <AvatarCropModal
+          imageSrc={rawImageSrc}
+          onClose={handleCropClose}
+          onConfirm={handleCropConfirm}
+        />
+      )}
+    </>
   );
 }
 
