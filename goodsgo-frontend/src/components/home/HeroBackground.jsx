@@ -120,9 +120,6 @@ export default function HeroBackground({ palette = 'golden', animate = true }) {
 
           {/* Distant mountains */}
           <path d="M-20,455 L200,338 L360,410 L560,300 L760,238 L980,360 L1180,300 L1420,362 L1620,320 L1620,455 Z" fill="#c6d8ee" />
-          <polygon points="760,238 718,286 802,286" fill="#eff5fc" />
-          <polygon points="560,300 531,338 589,338" fill="#eef4fb" />
-          <polygon points="1180,300 1150,340 1210,340" fill="#eef4fb" />
           <path d="M-20,455 L180,394 L380,432 L560,382 L780,422 L1000,386 L1240,430 L1460,394 L1620,432 L1620,455 Z" fill="#9fb9db" />
 
           {/* Distant city skyline (right) */}
