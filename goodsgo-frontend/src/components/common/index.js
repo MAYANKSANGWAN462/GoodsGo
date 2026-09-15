@@ -17,3 +17,4 @@ export { default as SkeletonLoader } from './SkeletonLoader.jsx';
 export { default as Spinner } from './Spinner.jsx';
 export { default as StarRating } from './StarRating.jsx';
 export { default as Textarea } from './Textarea.jsx';
+export { default as TruckLoader } from './TruckLoader.jsx';

@@ -45,3 +45,20 @@ GoodsGo-Complete-Documentation.pdf
 
 # Interview talk-track PDF export (kept local)
 docs/GoodsGo-Interview-Talk-Track.pdf
+
+# Simple study guide export (kept local)
+GoodsGo-Simple-Guide.html
+GoodsGo-Simple-Guide.pdf
+
+# Interview guide export (kept local)
+GoodsGo-Interview-Guide.pdf
+*-Interview-Guide.pdf
+
+# Interview defense notes + export (kept local)
+GoodsGo-Round1-Interview-Defense.md
+GoodsGo-Round1-Interview-Defense.pdf
+*-Interview-Defense.md
+*-Interview-Defense.pdf
+
+# Local documentation staging folder (kept local)
+project-docs/

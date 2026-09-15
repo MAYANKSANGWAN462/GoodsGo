@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import Spinner from './Spinner';
+import TruckLoader from './TruckLoader';
 
 /**
  * Full-area loading overlay — centred spinner with optional label.
@@ -33,7 +34,7 @@ export default function PageLoader({ label = 'Loading…', variant = 'section' }
       aria-label={label}
     >
       <div className="flex flex-col items-center gap-3">
-        <Spinner size="xl" className="text-primary" />
+        <TruckLoader scale={variant === 'page' ? 1 : 0.8} label={label} />
         {label && (
           <p className="text-sm font-medium text-text-muted">{label}</p>
         )}

@@ -207,6 +207,116 @@ body {
 }
 
 /* ─────────────────────────────────────────────────────────────────────
+   TRUCK LOADER
+   Themed delivery-truck loading animation. Road / lamp / dash-gap colours
+   are driven by design tokens so it reads correctly in both light & dark.
+   The truck body keeps its own bright fills, so it stands out on any
+   surface. Honours prefers-reduced-motion.
+───────────────────────────────────────────────────────────────────── */
+.truck-loader {
+  /* Road & lamp use the text colour → dark on light, light on dark.
+     The dash gaps use the surface colour so they blend into the backdrop. */
+  --truck-road: var(--color-text);
+  --truck-gap:  var(--color-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: scale(var(--truck-scale, 1));
+}
+
+.truck-loader .truckWrapper {
+  width: 200px;
+  height: 100px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  align-items: center;
+  justify-content: flex-end;
+  overflow-x: hidden;
+}
+
+.truck-loader .truckBody {
+  width: 130px;
+  height: fit-content;
+  margin-bottom: 6px;
+  animation: truckMotion 1s linear infinite;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.18));
+}
+
+@keyframes truckMotion {
+  0%   { transform: translateY(0px); }
+  50%  { transform: translateY(3px); }
+  100% { transform: translateY(0px); }
+}
+
+.truck-loader .truckTires {
+  width: 130px;
+  height: fit-content;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px 0 15px;
+  position: absolute;
+  bottom: 0;
+}
+.truck-loader .truckTires svg { width: 24px; }
+
+.truck-loader .road {
+  width: 100%;
+  height: 1.5px;
+  background-color: var(--truck-road);
+  position: relative;
+  bottom: 0;
+  align-self: flex-end;
+  border-radius: 3px;
+}
+.truck-loader .road::before {
+  content: "";
+  position: absolute;
+  width: 20px;
+  height: 100%;
+  background-color: var(--truck-road);
+  right: -50%;
+  border-radius: 3px;
+  animation: truckRoad 1.4s linear infinite;
+  border-left: 10px solid var(--truck-gap);
+}
+.truck-loader .road::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 100%;
+  background-color: var(--truck-road);
+  right: -65%;
+  border-radius: 3px;
+  animation: truckRoad 1.4s linear infinite;
+  border-left: 4px solid var(--truck-gap);
+}
+
+.truck-loader .lampPost {
+  position: absolute;
+  bottom: 0;
+  right: -90%;
+  height: 90px;
+  fill: var(--truck-road);
+  animation: truckRoad 1.4s linear infinite;
+}
+
+@keyframes truckRoad {
+  0%   { transform: translateX(0px); }
+  100% { transform: translateX(-350px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .truck-loader .truckBody,
+  .truck-loader .road::before,
+  .truck-loader .road::after,
+  .truck-loader .lampPost {
+    animation: none;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────
    MOBILE SAFE-AREA SPACING
    Gives the bottom nav breathing room on notched devices.
 ───────────────────────────────────────────────────────────────────── */
