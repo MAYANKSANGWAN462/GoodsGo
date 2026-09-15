@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* ─── Dark-mode variant: toggle by .dark class on <html> ───────────── */
-@variant dark (&:where(.dark, .dark *));
+@custom-variant dark (&:where(.dark, .dark *));
 
 /* ─────────────────────────────────────────────────────────────────────
    DESIGN TOKENS
