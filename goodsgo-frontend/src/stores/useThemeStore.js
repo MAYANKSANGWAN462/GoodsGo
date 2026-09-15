@@ -40,8 +40,8 @@ function applyTheme(theme) {
     root.setAttribute('data-theme', 'light');
   }
 
-  // Remove the transitioning class after the animation completes (220ms + buffer)
-  setTimeout(() => root.classList.remove('theme-transitioning'), 280);
+  // Remove the transitioning class after the animation completes (380ms + buffer)
+  setTimeout(() => root.classList.remove('theme-transitioning'), 440);
 }
 
 // Apply on module load so there's no flash of wrong theme

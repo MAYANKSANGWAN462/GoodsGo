@@ -68,18 +68,18 @@ export default function InstallBanner({ isIOS, onInstall, onDismiss }) {
         </div>
       ) : (
         /* Android/Chrome: native install prompt */
-        <div className="mt-3 flex gap-2">
+        <div className="mt-3 flex gap-2.5">
           <button
             type="button"
             onClick={onDismiss}
-            className="flex-1 py-2 text-sm font-medium text-text-muted rounded-lg border border-border hover:bg-overlay transition-colors"
+            className="flex-1 py-2.5 text-sm font-medium text-text-muted rounded-lg border border-border hover:bg-overlay hover:text-text active:scale-[0.98] transition-all duration-150"
           >
             Not now
           </button>
           <button
             type="button"
             onClick={onInstall}
-            className="flex-1 py-2 text-sm font-semibold text-white rounded-lg bg-primary hover:bg-primary/90 transition-colors"
+            className="flex-1 py-2.5 text-sm font-semibold text-white rounded-lg bg-primary hover:bg-primary-dark shadow-sm hover:shadow-md active:scale-[0.98] transition-all duration-150"
           >
             Install
           </button>

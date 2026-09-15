@@ -81,10 +81,20 @@
 .theme-transitioning *::before,
 .theme-transitioning *::after {
   transition:
-    background-color 220ms ease,
-    color 220ms ease,
-    border-color 220ms ease,
-    box-shadow 220ms ease !important;
+    background-color 380ms cubic-bezier(0.4, 0, 0.2, 1),
+    color 380ms cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 380ms cubic-bezier(0.4, 0, 0.2, 1),
+    fill 380ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 380ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-transitioning,
+  .theme-transitioning *,
+  .theme-transitioning *::before,
+  .theme-transitioning *::after {
+    transition: none !important;
+  }
 }
 
 /* ─────────────────────────────────────────────────────────────────────
@@ -324,7 +334,105 @@ body {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* At least 1rem of bottom padding, growing to clear the safe-area inset on
+   notched devices. Used by the install banner. */
+.pb-safe-or-4 {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+}
+
 /* Bottom-nav spacing: push page content above the fixed nav bar */
 .has-bottom-nav {
   padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   THEME TOGGLE SWITCH
+   Animated day/night switch used by <ThemeToggle>. Self-contained colours
+   (blue sky by day, midnight by night) since it depicts the theme itself.
+   CSS-only; honours prefers-reduced-motion.
+───────────────────────────────────────────────────────────────────── */
+.theme-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  width: 40px;
+  height: 22px;
+  flex-shrink: 0;
+  padding: 0;
+  border-radius: 9999px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: linear-gradient(#5eb3ff, #7cc0ff);
+  overflow: hidden;
+  cursor: pointer;
+  transition: background 0.35s ease, border-color 0.35s ease;
+}
+
+.theme-switch[data-mode='dark'] {
+  background: linear-gradient(#1b2233, #2a2f42);
+  border-color: var(--color-border-strong);
+}
+
+.theme-switch__knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffd24a;
+  box-shadow: 0 0 3px 0 rgba(255, 190, 40, 0.55);
+  transition:
+    transform 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55),
+    background 0.35s ease,
+    box-shadow 0.35s ease;
+}
+
+.theme-switch[data-mode='dark'] .theme-switch__knob {
+  transform: translateX(18px);
+  background: #e2e6ee;
+  box-shadow: inset -4px 2px 0 0 #b7bfce;
+}
+
+.theme-switch__star {
+  position: absolute;
+  width: 2.5px;
+  height: 2.5px;
+  border-radius: 50%;
+  background: #fff;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.theme-switch[data-mode='dark'] .theme-switch__star {
+  opacity: 0.9;
+}
+
+.theme-switch__star--1 { top: 5px;  left: 7px; }
+.theme-switch__star--2 { top: 13px; left: 11px; }
+.theme-switch__star--3 { top: 7px;  left: 14px; }
+
+.theme-switch__cloud {
+  position: absolute;
+  bottom: 2px;
+  left: 19px;
+  width: 17px;
+  height: auto;
+  fill: #ffffff;
+  opacity: 0.95;
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.theme-switch[data-mode='dark'] .theme-switch__cloud {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-switch,
+  .theme-switch__knob,
+  .theme-switch__star,
+  .theme-switch__cloud {
+    transition: none;
+  }
 }
